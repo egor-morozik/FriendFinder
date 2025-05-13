@@ -1,0 +1,53 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Профиль {{ profile.user.username }}</title>
+    <style>
+        .avatar {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Профиль {{ profile.user.username }}</h2>
+    <a href="{% url 'profile-list' %}">Назад к списку</a>
+    <a href="{% url 'logout' %}">Выйти</a>
+    {% if is_own_profile %}
+        <a href="{% url 'edit-profile' %}">Редактировать профиль</a>
+    {% endif %}
+    <div>
+        {% if profile.photo and profile.photo.url %}
+            <img src="{{ profile.photo.url }}" alt="Аватар" class="avatar">
+        {% else %}
+            <img src="{% static 'default-avatar.png' %}" alt="Аватар" class="avatar">
+        {% endif %}
+        <p><strong>Имя:</strong> {{ profile.name }}</p>
+        <p><strong>Username:</strong> {{ profile.user.username }}</p>
+        <p><strong>Статус:</strong> {{ profile.status }}</p>
+        <p><strong>Возраст:</strong> {{ profile.age }}</p>
+        <p><strong>Интересы:</strong> {{ profile.interests }}</p>
+        <p><strong>Био:</strong> {{ profile.bio }}</p>
+        <p><strong>Местоположение:</strong> {{ profile.location }}</p>
+    </div>
+    {% if not is_own_profile %}
+        <form method="post" action="{% url 'create-match' user_id %}" style="display:inline;">
+            {% csrf_token %}
+            {% if user_id in matched_user_ids %}
+                <button type="button" disabled>Уже в мэтче</button>
+            {% elif user_id in sent_like_user_ids %}
+                <button type="submit">Ожидаем ответа</button>
+            {% else %}
+                <button type="submit">Создать мэтч</button>
+            {% endif %}
+        </form>
+        <a href="{% url 'chat' user_id %}">Перейти в чат</a>
+    {% endif %}
+    {% for message in messages %}
+        <p>{{ message }}</p>
+    {% endfor %}
+</body>
+</html>

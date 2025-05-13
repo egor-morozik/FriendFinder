@@ -1,19 +1,19 @@
 from django.shortcuts import render
 from django.http import HttpResponse
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth import login, authenticate
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import UserProfile, Like, Match, Message
+from django.contrib import messages
 
 @login_required
 def profile_list(request):
     users = User.objects.all()
     profiles = UserProfile.objects.all()
     current_user = request.user
-    # Получаем существующие мэтчи текущего пользователя
     matches = Match.objects.filter(user1=current_user) | Match.objects.filter(user2=current_user)
     matched_user_ids = set()
     for match in matches:
@@ -21,10 +21,8 @@ def profile_list(request):
             matched_user_ids.add(match.user2.id)
         else:
             matched_user_ids.add(match.user1.id)
-    # Получаем лайки, отправленные текущим пользователем
     sent_likes = Like.objects.filter(from_user=current_user, is_active=True)
     sent_like_user_ids = {like.to_user.id for like in sent_likes}
-    # Получаем лайки, полученные текущим пользователем
     received_likes = Like.objects.filter(to_user=current_user, is_active=True)
     received_like_user_ids = {like.from_user.id for like in received_likes}
     context = {
@@ -41,22 +39,63 @@ def create_match(request, user_id):
     if request.method == 'POST':
         other_user = User.objects.get(id=user_id)
         current_user = request.user
-        # Проверяем, нет ли уже мэтча
         existing_match = Match.objects.filter(user1=current_user, user2=other_user).first() or \
                         Match.objects.filter(user1=other_user, user2=current_user).first()
         if not existing_match:
-            # Проверяем взаимные лайки
             like_from_current = Like.objects.filter(from_user=current_user, to_user=other_user, is_active=True).exists()
             like_from_other = Like.objects.filter(from_user=other_user, to_user=current_user, is_active=True).exists()
             if like_from_current and like_from_other:
-                # Создаем мэтч
                 Match.objects.create(user1=current_user, user2=other_user, is_active=True)
-            else:
-                # Создаем лайк от текущего пользователя, если его еще нет
-                if not like_from_current:
-                    Like.objects.create(from_user=current_user, to_user=other_user, is_active=True)
+                messages.success(request, f"Мэтч с {other_user.username} создан!")
+            elif not like_from_current:
+                Like.objects.create(from_user=current_user, to_user=other_user, is_active=True)
+                messages.info(request, f"Лайк отправлен {other_user.username}. Ожидаем ответа.")
+        else:
+            messages.info(request, f"Мэтч с {other_user.username} уже существует.")
         return redirect('profile-list')
     return redirect('profile-list')
+
+@login_required
+def profile_detail(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    profile = get_object_or_404(UserProfile, user=user)
+    current_user = request.user
+    is_own_profile = (current_user == user)
+    matches = Match.objects.filter(user1=current_user) | Match.objects.filter(user2=current_user)
+    matched_user_ids = set()
+    for match in matches:
+        if match.user1 == current_user:
+            matched_user_ids.add(match.user2.id)
+        else:
+            matched_user_ids.add(match.user1.id)
+    sent_likes = Like.objects.filter(from_user=current_user, is_active=True)
+    sent_like_user_ids = {like.to_user.id for like in sent_likes}
+    context = {
+        'profile': profile,
+        'is_own_profile': is_own_profile,
+        'matched_user_ids': matched_user_ids,
+        'sent_like_user_ids': sent_like_user_ids,
+        'user_id': user_id,
+    }
+    return render(request, 'profiles/profile_detail.html', context)
+
+@login_required
+def edit_profile(request):
+    profile = get_object_or_404(UserProfile, user=request.user)
+    if request.method == 'POST':
+        profile.name = request.POST.get('name', profile.name)
+        profile.age = request.POST.get('age', profile.age)
+        profile.interests = request.POST.get('interests', profile.interests)
+        profile.bio = request.POST.get('bio', profile.bio)
+        profile.location = request.POST.get('location', profile.location)
+        profile.status = request.POST.get('status', profile.status)
+        if 'photo' in request.FILES:
+            profile.photo = request.FILES['photo']
+        profile.save()
+        messages.success(request, "Профиль успешно обновлен!")
+        return redirect('profile-detail', user_id=request.user.id)
+    context = {'profile': profile}
+    return render(request, 'profiles/edit_profile.html', context)
 
 @login_required
 def chat(request, user_id):
@@ -73,9 +112,6 @@ def chat(request, user_id):
     context = {'other_user': other_user, 'messages': messages, 'match': match}
     return render(request, 'profiles/chat.html', context)
 
-def profile_detail(request, pk):
-    return render(request, 'profiles/profile_detail.html', {'pk': pk})
-
 def like_create(request):
     return render(request, 'profiles/like_create.html')
 
@@ -87,6 +123,7 @@ def register(request):
         form = UserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
+            UserProfile.objects.create(user=user, name=user.username, age=18)  # Создаем профиль по умолчанию
             login(request, user)
             return redirect('profile-list')
     else:
@@ -106,6 +143,8 @@ def login_view(request):
     else:
         form = AuthenticationForm()
     return render(request, 'profiles/login.html', {'form': form})
+
+from django.contrib.auth import logout
 
 def logout_view(request):
     logout(request)

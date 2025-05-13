@@ -8,11 +8,13 @@ class UserProfile(models.Model):
     interests = models.CharField(max_length=255)
     bio = models.TextField(blank=True)
     location = models.CharField(max_length=100, blank=True)
-    photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.name}'s profile"
+    photo = models.ImageField(
+            upload_to='profile_photos/',
+            default='images/default-avatar.png',  # Путь относительно static/
+            blank=True,
+            null=True
+        )
+    status = models.CharField(max_length=255, blank=True, default='Hello world!')
 
 class Like(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes_given')

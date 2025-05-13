@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Редактирование профиля</title>
+    <style>
+        .sidebar {
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>Навигация</h3>
+        <ul>
+            <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
+            <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
+            <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+            <li><a href="{% url 'logout' %}">Выйти</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h2>Редактировать профиль</h2>
+        <a href="{% url 'profile-detail' user_id=request.user.id %}">Назад к профилю</a>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <p><label>Имя:</label> <input type="text" name="name" value="{{ profile.name }}"></p>
+            <p><label>Возраст:</label> <input type="number" name="age" value="{{ profile.age }}"></p>
+            <p><label>Интересы:</label> <input type="text" name="interests" value="{{ profile.interests }}"></p>
+            <p><label>Био:</label> <textarea name="bio">{{ profile.bio }}</textarea></p>
+            <p><label>Местоположение:</label> <input type="text" name="location" value="{{ profile.location }}"></p>
+            <p><label>Статус:</label> <input type="text" name="status" value="{{ profile.status }}"></p>
+            <p><label>Фото:</label> <input type="file" name="photo"></p>
+            <button type="submit">Сохранить</button>
+        </form>
+        {% for message in messages %}
+            <p>{{ message }}</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -2,32 +2,66 @@
 <html>
 <head>
     <title>Список пользователей</title>
+    <style>
+        .sidebar {
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h2>Список пользователей</h2>
-    <p>Вы вошли как: {{ request.user.username }}</p>
-    <a href="{% url 'logout' %}">Выйти</a>
-    <ul>
-        {% for user in users %}
-            {% if user != request.user %}  <!-- Исключаем текущего пользователя -->
-                {% with profile=profiles|first|default:user.profile %}
-                    <li>
-                        <a href="{% url 'chat' user.id %}">{{ profile.name }} ({{ user.username }})</a>
-                        - Возраст: {{ profile.age }}, Интересы: {{ profile.interests }}
-                        <form method="post" action="{% url 'create-match' user.id %}" style="display:inline;">
-                            {% csrf_token %}
-                            {% if user.id in matched_user_ids %}
-                                <button type="button" disabled>Уже в мэтче</button>
-                            {% elif user.id in sent_like_user_ids %}
-                                <button type="submit">Ожидаем ответа</button>
-                            {% else %}
-                                <button type="submit">Создать мэтч</button>
-                            {% endif %}
-                        </form>
-                    </li>
-                {% endwith %}
+    <div class="sidebar">
+        <h3>Навигация</h3>
+        <ul>
+            <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
+            {% if request.user.is_authenticated %}
+                <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
+                <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+                <li><a href="{% url 'logout' %}">Выйти</a></li>
+            {% else %}
+                <li><a href="{% url 'register' %}">Регистрация</a></li>
+                <li><a href="{% url 'login' %}">Вход</a></li>
             {% endif %}
+        </ul>
+    </div>
+    <div class="content">
+        <h2>Список пользователей</h2>
+        <p>Вы вошли как: {{ request.user.username }}</p>
+        <ul>
+            {% for user in users %}
+                {% if user != request.user %}
+                    {% with profile=profiles|first|default:user.profile %}
+                        <li>
+                            <a href="{% url 'profile-detail' user_id=user.id %}">{{ profile.name }} ({{ user.username }})</a>
+                            - Возраст: {{ profile.age }}, Интересы: {{ profile.interests }}
+                            <form method="post" action="{% url 'create-match' user.id %}" style="display:inline;">
+                                {% csrf_token %}
+                                {% if user.id in matched_user_ids %}
+                                    <button type="button" disabled>Уже в мэтче</button>
+                                {% elif user.id in sent_like_user_ids %}
+                                    <button type="submit">Ожидаем ответа</button>
+                                {% else %}
+                                    <button type="submit">Создать мэтч</button>
+                                {% endif %}
+                            </form>
+                            <a href="{% url 'chat' user.id %}">Перейти в чат</a>
+                        </li>
+                    {% endwith %}
+                {% endif %}
+            {% endfor %}
+        </ul>
+        {% for message in messages %}
+            <p>{{ message }}</p>
         {% endfor %}
-    </ul>
+    </div>
 </body>
 </html>
