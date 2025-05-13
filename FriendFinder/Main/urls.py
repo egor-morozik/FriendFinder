@@ -8,4 +8,7 @@ urlpatterns = [
     path('likes/<int:pk>/', views.like_detail, name='like-detail'),
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
+    path('logout/', views.logout_view, name='logout'),
+    path('chat/<int:user_id>/', views.chat, name='chat'),
+    path('create-match/<int:user_id>/', views.create_match, name='create-match'),
 ]

@@ -7,7 +7,7 @@ class UserProfile(models.Model):
     age = models.IntegerField()
     interests = models.CharField(max_length=255)
     bio = models.TextField(blank=True)
-    location = models.CharField(max_length=100, blank=True) 
+    location = models.CharField(max_length=100, blank=True)
     photo = models.ImageField(upload_to='profile_photos/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -18,10 +18,10 @@ class Like(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes_given')
     to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='likes_received')
     created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True) 
+    is_active = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('from_user', 'to_user')  
+        unique_together = ('from_user', 'to_user')
 
     def __str__(self):
         return f"{self.from_user.username} likes {self.to_user.username}"
@@ -33,7 +33,7 @@ class Match(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ('user1', 'user2')  
+        unique_together = ('user1', 'user2')
 
     def __str__(self):
         return f"Match between {self.user1.username} and {self.user2.username}"
@@ -46,4 +46,3 @@ class Message(models.Model):
 
     def __str__(self):
         return f"Message from {self.sender.username} in match {self.match.id}"
-    

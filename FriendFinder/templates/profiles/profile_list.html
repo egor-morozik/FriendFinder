@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Список пользователей</title>
+</head>
+<body>
+    <h2>Список пользователей</h2>
+    <p>Вы вошли как: {{ request.user.username }}</p>
+    <a href="{% url 'logout' %}">Выйти</a>
+    <ul>
+        {% for user in users %}
+            {% if user != request.user %}  <!-- Исключаем текущего пользователя -->
+                {% with profile=profiles|first|default:user.profile %}
+                    <li>
+                        <a href="{% url 'chat' user.id %}">{{ profile.name }} ({{ user.username }})</a>
+                        - Возраст: {{ profile.age }}, Интересы: {{ profile.interests }}
+                        <form method="post" action="{% url 'create-match' user.id %}" style="display:inline;">
+                            {% csrf_token %}
+                            {% if user.id in matched_user_ids %}
+                                <button type="button" disabled>Уже в мэтче</button>
+                            {% elif user.id in sent_like_user_ids %}
+                                <button type="submit">Ожидаем ответа</button>
+                            {% else %}
+                                <button type="submit">Создать мэтч</button>
+                            {% endif %}
+                        </form>
+                    </li>
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
+    </ul>
+</body>
+</html>

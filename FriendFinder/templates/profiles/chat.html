@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Чат с {{ other_user.username }}</title>
+</head>
+<body>
+    <h2>Чат с {{ other_user.username }}</h2>
+    <a href="{% url 'profile-list' %}">Назад к списку</a>
+    <a href="{% url 'logout' %}">Выйти</a>
+    {% if not match %}
+        <p>Чат доступен только после мэтча. Лайкните пользователя для начала!</p>
+    {% else %}
+        <div>
+            {% for message in messages %}
+                <p><strong>{{ message.sender.username }}:</strong> {{ message.content }} ({{ message.created_at }})</p>
+            {% empty %}
+                <p>Нет сообщений. Начните чат!</p>
+            {% endfor %}
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <textarea name="content" rows="4" cols="50"></textarea><br>
+            <button type="submit">Отправить</button>
+        </form>
+    {% endif %}
+</body>
+</html>
