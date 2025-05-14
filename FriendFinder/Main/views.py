@@ -119,6 +119,8 @@ def like_detail(request, pk):
     return render(request, 'profiles/like_detail.html', {'pk': pk})
 
 def register(request):
+    if request.user.is_authenticated:
+        return redirect('profile-list')
     if request.method == 'POST':
         form = UserCreationForm(request.POST)
         if form.is_valid():
@@ -131,6 +133,8 @@ def register(request):
     return render(request, 'profiles/register.html', {'form': form})
 
 def login_view(request):
+    if request.user.is_authenticated:
+        return redirect('profile-list')
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
