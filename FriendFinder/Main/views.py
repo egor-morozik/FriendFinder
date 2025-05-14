@@ -6,7 +6,7 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .models import UserProfile, Like, Match, Message
+from .models import UserProfile, Like, Match, Message, Interest
 from django.contrib import messages
 
 @login_required
@@ -70,12 +70,14 @@ def profile_detail(request, user_id):
             matched_user_ids.add(match.user1.id)
     sent_likes = Like.objects.filter(from_user=current_user, is_active=True)
     sent_like_user_ids = {like.to_user.id for like in sent_likes}
+    interests = profile.interests.all()  # Получаем список интересов как объекты
     context = {
         'profile': profile,
         'is_own_profile': is_own_profile,
         'matched_user_ids': matched_user_ids,
         'sent_like_user_ids': sent_like_user_ids,
         'user_id': user_id,
+        'interests': interests,
     }
     return render(request, 'profiles/profile_detail.html', context)
 
@@ -85,12 +87,20 @@ def edit_profile(request):
     if request.method == 'POST':
         profile.name = request.POST.get('name', profile.name)
         profile.age = request.POST.get('age', profile.age)
-        profile.interests = request.POST.get('interests', profile.interests)
         profile.bio = request.POST.get('bio', profile.bio)
         profile.location = request.POST.get('location', profile.location)
         profile.status = request.POST.get('status', profile.status)
         if 'photo' in request.FILES:
             profile.photo = request.FILES['photo']
+        
+        existing_interests = set(profile.interests.values_list('name', flat=True))
+        new_interests = request.POST.getlist('interests') 
+        for interest_name in new_interests:
+            interest_name = interest_name.strip()
+            if interest_name and interest_name not in existing_interests:
+                interest, created = Interest.objects.get_or_create(name=interest_name)
+                profile.interests.add(interest)
+
         profile.save()
         messages.success(request, "Профиль успешно обновлен!")
         return redirect('profile-detail', user_id=request.user.id)

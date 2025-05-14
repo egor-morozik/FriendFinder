@@ -16,7 +16,29 @@
             margin-left: 220px;
             padding: 20px;
         }
+        .interest-box {
+            display: inline-block;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .interest-input {
+            margin: 5px 0;
+        }
     </style>
+    <script>
+        function addInterestField() {
+            const container = document.getElementById('interests-container');
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.name = 'interests';
+            input.placeholder = 'Новый интерес';
+            input.className = 'interest-input';
+            container.appendChild(input);
+        }
+    </script>
 </head>
 <body>
     <div class="sidebar">
@@ -35,7 +57,14 @@
             {% csrf_token %}
             <p><label>Имя:</label> <input type="text" name="name" value="{{ profile.name }}"></p>
             <p><label>Возраст:</label> <input type="number" name="age" value="{{ profile.age }}"></p>
-            <p><label>Интересы:</label> <input type="text" name="interests" value="{{ profile.interests }}"></p>
+            <p><label>Интересы:</label></p>
+            <div id="interests-container">
+                {% for interest in profile.interests.all %}
+                    <span class="interest-box">{{ interest.name }}</span>
+                {% endfor %}
+                <input type="text" name="interests" placeholder="Новый интерес" class="interest-input">
+            </div>
+            <button type="button" onclick="addInterestField()">Добавить интерес</button>
             <p><label>Био:</label> <textarea name="bio">{{ profile.bio }}</textarea></p>
             <p><label>Местоположение:</label> <input type="text" name="location" value="{{ profile.location }}"></p>
             <p><label>Статус:</label> <input type="text" name="status" value="{{ profile.status }}"></p>
