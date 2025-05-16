@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>Редактирование профиля</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .sidebar {
             width: 200px;
@@ -27,6 +29,11 @@
         .interest-input {
             margin: 5px 0;
         }
+        #map {
+            height: 300px;
+            width: 100%;
+            margin-top: 10px;
+        }
     </style>
     <script>
         function addInterestField() {
@@ -37,6 +44,55 @@
             input.placeholder = 'Новый интерес';
             input.className = 'interest-input';
             container.appendChild(input);
+        }
+
+        let selectedCityId = null;
+        let map, marker;
+
+        window.onload = function() {
+            map = L.map('map').setView([55.7558, 37.6173], 5); 
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            const cities = [
+                {% for city in cities %}
+                    {id: {{ city.id }}, name: "{{ city.name }}", lat: {{ city.latitude }}, lng: {{ city.longitude }}},
+                {% endfor %}
+            ];
+
+            cities.forEach(city => {
+                const cityMarker = L.marker([city.lat, city.lng]).addTo(map);
+                cityMarker.bindPopup(city.name);
+                cityMarker.on('click', function() {
+                    selectedCityId = city.id;
+                    document.getElementById('city-select').value = city.id;
+                    if (marker) {
+                        map.removeLayer(marker);
+                    }
+                    marker = L.marker([city.lat, city.lng], { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41] }) }).addTo(map);
+                });
+            });
+
+            {% if profile.location %}
+                map.setView([{{ profile.location.latitude }}, {{ profile.location.longitude }}], 10);
+                marker = L.marker([{{ profile.location.latitude }}, {{ profile.location.longitude }}]).addTo(map);
+                selectedCityId = {{ profile.location.id }};
+            {% endif %}
+        };
+
+        function updateMap() {
+            const cityId = document.getElementById('city-select').value;
+            const city = cities.find(c => c.id == cityId);
+            if (city) {
+                selectedCityId = city.id;
+                map.setView([city.lat, city.lng], 10);
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+                marker = L.marker([city.lat, city.lng], { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41] }) }).addTo(map);
+            }
         }
     </script>
 </head>
@@ -65,8 +121,16 @@
                 <input type="text" name="interests" placeholder="Новый интерес" class="interest-input">
             </div>
             <button type="button" onclick="addInterestField()">Добавить интерес</button>
+            <p><label>Город:</label>
+                <select name="city" id="city-select" onchange="updateMap()">
+                    <option value="">Выберите город</option>
+                    {% for city in cities %}
+                        <option value="{{ city.id }}" {% if city == profile.location %}selected{% endif %}>{{ city.name }}</option>
+                    {% endfor %}
+                </select>
+            </p>
+            <div id="map"></div>
             <p><label>Био:</label> <textarea name="bio">{{ profile.bio }}</textarea></p>
-            <p><label>Местоположение:</label> <input type="text" name="location" value="{{ profile.location }}"></p>
             <p><label>Статус:</label> <input type="text" name="status" value="{{ profile.status }}"></p>
             <p><label>Фото:</label> <input type="file" name="photo"></p>
             <button type="submit">Сохранить</button>

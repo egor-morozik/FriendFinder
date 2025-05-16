@@ -46,7 +46,7 @@
             {% endfor %}
         </div>
         <p><strong>Био:</strong> {{ profile.bio|default:"Не указано" }}</p>
-        <p><strong>Местоположение:</strong> {{ profile.location|default:"Не указано" }}</p>
+        <p><strong>Город:</strong> {{ profile.location.name|default:"Не указан" }}</p>
     </div>
     {% if not is_own_profile %}
         <form method="post" action="{% url 'create-match' user_id %}" style="display:inline;">

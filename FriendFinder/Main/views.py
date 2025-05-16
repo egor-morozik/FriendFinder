@@ -6,7 +6,7 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from .models import UserProfile, Like, Match, Message, Interest
+from .models import UserProfile, Like, Match, Message, Interest, City
 from django.contrib import messages
 
 @login_required
@@ -84,17 +84,23 @@ def profile_detail(request, user_id):
 @login_required
 def edit_profile(request):
     profile = get_object_or_404(UserProfile, user=request.user)
+    cities = City.objects.all()  # Получаем все города
     if request.method == 'POST':
         profile.name = request.POST.get('name', profile.name)
         profile.age = request.POST.get('age', profile.age)
         profile.bio = request.POST.get('bio', profile.bio)
-        profile.location = request.POST.get('location', profile.location)
+        city_id = request.POST.get('city')  # Получаем ID города
+        if city_id:
+            city = get_object_or_404(City, id=city_id)
+            profile.location = city
+        else:
+            profile.location = None
         profile.status = request.POST.get('status', profile.status)
         if 'photo' in request.FILES:
             profile.photo = request.FILES['photo']
         
         existing_interests = set(profile.interests.values_list('name', flat=True))
-        new_interests = request.POST.getlist('interests') 
+        new_interests = request.POST.getlist('interests')
         for interest_name in new_interests:
             interest_name = interest_name.strip()
             if interest_name and interest_name not in existing_interests:
@@ -104,7 +110,7 @@ def edit_profile(request):
         profile.save()
         messages.success(request, "Профиль успешно обновлен!")
         return redirect('profile-detail', user_id=request.user.id)
-    context = {'profile': profile}
+    context = {'profile': profile, 'cities': cities}
     return render(request, 'profiles/edit_profile.html', context)
 
 @login_required
