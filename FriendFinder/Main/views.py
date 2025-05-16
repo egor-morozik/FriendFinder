@@ -84,17 +84,23 @@ def profile_detail(request, user_id):
 @login_required
 def edit_profile(request):
     profile = get_object_or_404(UserProfile, user=request.user)
-    cities = City.objects.all()  # Получаем все города
     if request.method == 'POST':
         profile.name = request.POST.get('name', profile.name)
         profile.age = request.POST.get('age', profile.age)
         profile.bio = request.POST.get('bio', profile.bio)
-        city_id = request.POST.get('city')  # Получаем ID города
-        if city_id:
-            city = get_object_or_404(City, id=city_id)
+        
+        city_name = request.POST.get('location')
+        latitude = request.POST.get('latitude')
+        longitude = request.POST.get('longitude')
+        if city_name:
+            city, created = City.objects.get_or_create(
+                name=city_name,
+                defaults={'latitude': float(latitude) if latitude else None, 'longitude': float(longitude) if longitude else None}
+            )
             profile.location = city
         else:
             profile.location = None
+            
         profile.status = request.POST.get('status', profile.status)
         if 'photo' in request.FILES:
             profile.photo = request.FILES['photo']
@@ -110,7 +116,7 @@ def edit_profile(request):
         profile.save()
         messages.success(request, "Профиль успешно обновлен!")
         return redirect('profile-detail', user_id=request.user.id)
-    context = {'profile': profile, 'cities': cities}
+    context = {'profile': profile}
     return render(request, 'profiles/edit_profile.html', context)
 
 @login_required

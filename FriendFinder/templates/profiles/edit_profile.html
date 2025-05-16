@@ -34,8 +34,112 @@
             width: 100%;
             margin-top: 10px;
         }
+        .autocomplete-suggestions {
+            border: 1px solid #ccc;
+            background: white;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 1000;
+            width: 300px;
+        }
+        .autocomplete-suggestion {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #f0f0f0;
+        }
     </style>
     <script>
+        let map, marker;
+        const apiKey = "d306877a79e54109ba81d8f995966cc1"; 
+
+        window.onload = function() {
+            map = L.map('map').setView([0, 0], 2); 
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            {% if profile.location.latitude and profile.location.longitude %}
+                map.setView([{{ profile.location.latitude }}, {{ profile.location.longitude }}], 10);
+                marker = L.marker([{{ profile.location.latitude }}, {{ profile.location.longitude }}]).addTo(map);
+            {% endif %}
+
+            const cityInput = document.getElementById('city-input');
+            const suggestionsDiv = document.getElementById('suggestions');
+            const latitudeInput = document.getElementById('latitude');
+            const longitudeInput = document.getElementById('longitude');
+
+            cityInput.addEventListener('input', function() {
+                const query = cityInput.value;
+                if (query.length < 3) {
+                    suggestionsDiv.innerHTML = '';
+                    return;
+                }
+                fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&type=city&limit=5&apiKey=${apiKey}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsDiv.innerHTML = '';
+                        data.features.forEach(feature => {
+                            const cityName = feature.properties.city;
+                            const country = feature.properties.country || '';
+                            const displayName = `${cityName}, ${country}`;
+                            const lat = feature.properties.lat;
+                            const lon = feature.properties.lon;
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-suggestion';
+                            div.innerText = displayName;
+                            div.onclick = () => {
+                                cityInput.value = cityName;
+                                latitudeInput.value = lat;
+                                longitudeInput.value = lon;
+                                suggestionsDiv.innerHTML = '';
+                                if (marker) map.removeLayer(marker);
+                                marker = L.marker([lat, lon]).addTo(map);
+                                map.setView([lat, lon], 10);
+                            };
+                            suggestionsDiv.appendChild(div);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching cities:', error));
+            });
+
+            map.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lon = e.latlng.lng;
+                console.log("Map clicked at:", lat, lon);
+
+                fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&type=city&apiKey=${apiKey}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.features && data.features.length > 0) {
+                            const feature = data.features[0];
+                            const cityName = feature.properties.city || feature.properties.town || feature.properties.village || 'Unknown City';
+                            const country = feature.properties.country || '';
+                            const displayName = `${cityName}, ${country}`;
+                            cityInput.value = cityName;
+                            latitudeInput.value = lat;
+                            longitudeInput.value = lon;
+                            if (marker) map.removeLayer(marker);
+                            marker = L.marker([lat, lon]).addTo(map);
+                            map.setView([lat, lon], 10);
+                            console.log("City selected from map:", cityName, lat, lon);
+                        } else {
+                            console.log("No city found at this location");
+                            alert("Не удалось определить город в этом месте.");
+                        }
+                    })
+                    .catch(error => console.error('Error fetching reverse geocode:', error));
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!cityInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.innerHTML = '';
+                }
+            });
+        };
+
         function addInterestField() {
             const container = document.getElementById('interests-container');
             const input = document.createElement('input');
@@ -44,55 +148,6 @@
             input.placeholder = 'Новый интерес';
             input.className = 'interest-input';
             container.appendChild(input);
-        }
-
-        let selectedCityId = null;
-        let map, marker;
-
-        window.onload = function() {
-            map = L.map('map').setView([55.7558, 37.6173], 5); 
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
-
-            const cities = [
-                {% for city in cities %}
-                    {id: {{ city.id }}, name: "{{ city.name }}", lat: {{ city.latitude }}, lng: {{ city.longitude }}},
-                {% endfor %}
-            ];
-
-            cities.forEach(city => {
-                const cityMarker = L.marker([city.lat, city.lng]).addTo(map);
-                cityMarker.bindPopup(city.name);
-                cityMarker.on('click', function() {
-                    selectedCityId = city.id;
-                    document.getElementById('city-select').value = city.id;
-                    if (marker) {
-                        map.removeLayer(marker);
-                    }
-                    marker = L.marker([city.lat, city.lng], { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41] }) }).addTo(map);
-                });
-            });
-
-            {% if profile.location %}
-                map.setView([{{ profile.location.latitude }}, {{ profile.location.longitude }}], 10);
-                marker = L.marker([{{ profile.location.latitude }}, {{ profile.location.longitude }}]).addTo(map);
-                selectedCityId = {{ profile.location.id }};
-            {% endif %}
-        };
-
-        function updateMap() {
-            const cityId = document.getElementById('city-select').value;
-            const city = cities.find(c => c.id == cityId);
-            if (city) {
-                selectedCityId = city.id;
-                map.setView([city.lat, city.lng], 10);
-                if (marker) {
-                    map.removeLayer(marker);
-                }
-                marker = L.marker([city.lat, city.lng], { icon: L.icon({ iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png', iconSize: [25, 41] }) }).addTo(map);
-            }
         }
     </script>
 </head>
@@ -122,12 +177,10 @@
             </div>
             <button type="button" onclick="addInterestField()">Добавить интерес</button>
             <p><label>Город:</label>
-                <select name="city" id="city-select" onchange="updateMap()">
-                    <option value="">Выберите город</option>
-                    {% for city in cities %}
-                        <option value="{{ city.id }}" {% if city == profile.location %}selected{% endif %}>{{ city.name }}</option>
-                    {% endfor %}
-                </select>
+                <input type="text" id="city-input" name="location" value="{{ profile.location.name|default:'' }}">
+                <div id="suggestions" class="autocomplete-suggestions"></div>
+                <input type="hidden" id="latitude" name="latitude" value="{{ profile.location.latitude|default_if_none:'' }}">
+                <input type="hidden" id="longitude" name="longitude" value="{{ profile.location.longitude|default_if_none:'' }}">
             </p>
             <div id="map"></div>
             <p><label>Био:</label> <textarea name="bio">{{ profile.bio }}</textarea></p>
