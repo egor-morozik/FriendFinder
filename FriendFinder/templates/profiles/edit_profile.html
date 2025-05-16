@@ -50,13 +50,17 @@
         .autocomplete-suggestion:hover {
             background-color: #f0f0f0;
         }
+        .error-message {
+            color: red;
+            font-size: 14px;
+        }
     </style>
     <script>
         let map, marker;
-        const apiKey = "d306877a79e54109ba81d8f995966cc1"; 
+        const apiKey = "d306877a79e54109ba81d8f995966cc1";
 
         window.onload = function() {
-            map = L.map('map').setView([0, 0], 2); 
+            map = L.map('map').setView([0, 0], 2);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
@@ -108,25 +112,19 @@
             map.on('click', function(e) {
                 const lat = e.latlng.lat;
                 const lon = e.latlng.lng;
-                console.log("Map clicked at:", lat, lon);
-
                 fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${lat}&lon=${lon}&type=city&apiKey=${apiKey}`)
                     .then(response => response.json())
                     .then(data => {
                         if (data.features && data.features.length > 0) {
                             const feature = data.features[0];
                             const cityName = feature.properties.city || feature.properties.town || feature.properties.village || 'Unknown City';
-                            const country = feature.properties.country || '';
-                            const displayName = `${cityName}, ${country}`;
                             cityInput.value = cityName;
                             latitudeInput.value = lat;
                             longitudeInput.value = lon;
                             if (marker) map.removeLayer(marker);
                             marker = L.marker([lat, lon]).addTo(map);
                             map.setView([lat, lon], 10);
-                            console.log("City selected from map:", cityName, lat, lon);
                         } else {
-                            console.log("No city found at this location");
                             alert("Не удалось определить город в этом месте.");
                         }
                     })
@@ -167,6 +165,7 @@
         <form method="post" enctype="multipart/form-data">
             {% csrf_token %}
             <p><label>Имя:</label> <input type="text" name="name" value="{{ profile.name }}"></p>
+            <p><label>Username:</label> <input type="text" name="username" value="{{ user.username }}"></p>
             <p><label>Возраст:</label> <input type="number" name="age" value="{{ profile.age }}"></p>
             <p><label>Интересы:</label></p>
             <div id="interests-container">
@@ -189,7 +188,7 @@
             <button type="submit">Сохранить</button>
         </form>
         {% for message in messages %}
-            <p>{{ message }}</p>
+            <p class="{% if message.tags == 'error' %}error-message{% else %}success-message{% endif %}">{{ message }}</p>
         {% endfor %}
     </div>
 </body>

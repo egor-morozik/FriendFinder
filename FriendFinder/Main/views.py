@@ -70,7 +70,7 @@ def profile_detail(request, user_id):
             matched_user_ids.add(match.user1.id)
     sent_likes = Like.objects.filter(from_user=current_user, is_active=True)
     sent_like_user_ids = {like.to_user.id for like in sent_likes}
-    interests = profile.interests.all()  # Получаем список интересов как объекты
+    interests = profile.interests.all() 
     context = {
         'profile': profile,
         'is_own_profile': is_own_profile,
@@ -84,6 +84,8 @@ def profile_detail(request, user_id):
 @login_required
 def edit_profile(request):
     profile = get_object_or_404(UserProfile, user=request.user)
+    user = request.user 
+
     if request.method == 'POST':
         profile.name = request.POST.get('name', profile.name)
         profile.age = request.POST.get('age', profile.age)
@@ -105,6 +107,13 @@ def edit_profile(request):
         if 'photo' in request.FILES:
             profile.photo = request.FILES['photo']
         
+        new_username = request.POST.get('username', user.username)
+        if new_username != user.username:
+            if User.objects.filter(username=new_username).exclude(id=user.id).exists():
+                messages.error(request, "Этот username уже занят. Выберите другой.")
+                return redirect('edit-profile')
+            user.username = new_username
+
         existing_interests = set(profile.interests.values_list('name', flat=True))
         new_interests = request.POST.getlist('interests')
         for interest_name in new_interests:
@@ -113,10 +122,12 @@ def edit_profile(request):
                 interest, created = Interest.objects.get_or_create(name=interest_name)
                 profile.interests.add(interest)
 
-        profile.save()
+        user.save()  
+        profile.save()  
         messages.success(request, "Профиль успешно обновлен!")
         return redirect('profile-detail', user_id=request.user.id)
-    context = {'profile': profile}
+
+    context = {'profile': profile, 'user': user}
     return render(request, 'profiles/edit_profile.html', context)
 
 @login_required
