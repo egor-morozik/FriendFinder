@@ -23,6 +23,15 @@
             padding: 10px;
             margin-bottom: 10px;
             border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .profile-image {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
         }
         .autocomplete-suggestions {
             border: 1px solid #ccc;
@@ -64,8 +73,10 @@
     </style>
     <script>
         const apiKey = "d306877a79e54109ba81d8f995966cc1";
+        // Парсим JSON-строку в массив
         const allInterests = JSON.parse('{{ all_interests_json|escapejs }}') || [];
 
+        // Функции для работы с интересами
         function addInterestFilter(interest) {
             if (!interest || interest.trim() === '') return;
             if (document.querySelector(`[data-interest="${interest}"]`)) return; // Проверка на дубликаты
@@ -98,8 +109,10 @@
         }
 
         window.onload = function() {
+            // Отладочный вывод
             console.log("All interests:", allInterests);
 
+            // Автодополнение для поля города
             const cityInput = document.getElementById('city-input');
             const citySuggestionsDiv = document.getElementById('city-suggestions');
 
@@ -131,6 +144,7 @@
                     .catch(error => console.error('Error fetching cities:', error));
             });
 
+            // Автодополнение и добавление интересов
             const interestInput = document.getElementById('interest-input');
             const interestSuggestionsDiv = document.getElementById('interest-suggestions');
 
@@ -156,6 +170,7 @@
                 });
             });
 
+            // Обработчик кнопки "Добавить"
             const addInterestButton = document.getElementById('add-interest-button');
             addInterestButton.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -167,10 +182,12 @@
                 }
             });
 
+            // Инициализация существующих фильтров
             {% for interest in interest_filters %}
                 addInterestFilter('{{ interest|escapejs }}');
             {% endfor %}
 
+            // Закрытие автодополнения при клике вне
             document.addEventListener('click', function(e) {
                 if (!cityInput.contains(e.target) && !citySuggestionsDiv.contains(e.target)) {
                     citySuggestionsDiv.innerHTML = '';
@@ -180,6 +197,7 @@
                 }
             });
 
+            // Функция для отправки формы с сортировкой
             function applySort() {
                 document.getElementById('filter-form').submit();
             }
@@ -198,6 +216,7 @@
     </div>
     <div class="content">
         <h2>Список профилей</h2>
+        <!-- Форма фильтров -->
         <form id="filter-form" method="get" class="filter-form">
             <p>
                 <label>Город:</label>
@@ -209,6 +228,7 @@
                 <input type="text" id="interest-input" placeholder="Добавить интерес">
                 <div id="interest-suggestions" class="autocomplete-suggestions"></div>
                 <div id="interest-filters-container">
+                    <!-- Существующие фильтры будут добавлены через JavaScript -->
                 </div>
                 <button type="button" id="add-interest-button">Добавить</button>
             </p>
@@ -223,18 +243,26 @@
             <button type="submit" name="sort" value="random">Перемешать</button>
         </form>
 
+        <!-- Список профилей -->
         {% for data in users_data %}
             <div class="profile-card">
-                <h3><a href="{% url 'profile-detail' user_id=data.user.id %}">{{ data.profile.name }} ({{ data.user.username }})</a></h3>
-                <p><strong>Город:</strong> {{ data.profile.location.name|default:"Не указан" }}</p>
-                <p><strong>Общие интересы:</strong> {{ data.common_interests }}</p>
-                <p><strong>Интересы:</strong>
-                    {% for interest in data.profile.interests.all %}
-                        <span class="interest-box">{{ interest.name }}</span>
-                    {% empty %}
-                        Не указано
-                    {% endfor %}
-                </p>
+                {% if data.profile.photo %}
+                    <img src="{{ data.profile.photo.url }}" alt="{{ data.profile.name }}" class="profile-image">
+                {% else %}
+                    <div class="profile-image" style="background-color: #ccc;">No Image</div>
+                {% endif %}
+                <div>
+                    <h3><a href="{% url 'profile-detail' user_id=data.user.id %}">{{ data.profile.name }} ({{ data.user.username }})</a></h3>
+                    <p><strong>Город:</strong> {{ data.profile.location.name|default:"Не указан" }}</p>
+                    <p><strong>Общие интересы:</strong> {{ data.common_interests }}</p>
+                    <p><strong>Интересы:</strong>
+                        {% for interest in data.profile.interests.all %}
+                            <span class="interest-box">{{ interest.name }}</span>
+                        {% empty %}
+                            Не указано
+                        {% endfor %}
+                    </p>
+                </div>
             </div>
         {% empty %}
             <p>Профилей не найдено.</p>
