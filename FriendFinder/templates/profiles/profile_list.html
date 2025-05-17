@@ -43,24 +43,76 @@
         .filter-form {
             margin-bottom: 20px;
         }
+        .interest-box {
+            display: inline-block;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 5px;
+            font-size: 14px;
+            position: relative;
+        }
+        .remove-interest {
+            cursor: pointer;
+            color: red;
+            margin-left: 5px;
+            font-weight: bold;
+        }
+        .interest-input {
+            margin: 5px 0;
+        }
     </style>
     <script>
         const apiKey = "d306877a79e54109ba81d8f995966cc1";
+        const allInterests = JSON.parse('{{ all_interests_json|escapejs }}') || [];
+
+        function addInterestFilter(interest) {
+            if (!interest || interest.trim() === '') return;
+            if (document.querySelector(`[data-interest="${interest}"]`)) return; // Проверка на дубликаты
+
+            const interestBox = document.createElement('span');
+            interestBox.className = 'interest-box';
+            interestBox.innerHTML = `${interest} <span class="remove-interest" onclick="removeInterestFilter(this, '${interest}')">x</span>`;
+            interestBox.dataset.interest = interest;
+            const interestFiltersContainer = document.getElementById('interest-filters-container');
+            interestFiltersContainer.appendChild(interestBox);
+
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = 'interests';
+            hiddenInput.value = interest;
+            interestFiltersContainer.appendChild(hiddenInput);
+        }
+
+        function removeInterestFilter(element, interest) {
+            const container = document.getElementById('interest-filters-container');
+            container.removeChild(element.parentElement);
+            const inputs = container.getElementsByTagName('input');
+            for (let input of inputs) {
+                if (input.value === interest) {
+                    container.removeChild(input);
+                    break;
+                }
+            }
+            document.getElementById('filter-form').submit();
+        }
 
         window.onload = function() {
+            console.log("All interests:", allInterests);
+
             const cityInput = document.getElementById('city-input');
-            const suggestionsDiv = document.getElementById('suggestions');
+            const citySuggestionsDiv = document.getElementById('city-suggestions');
 
             cityInput.addEventListener('input', function() {
                 const query = cityInput.value;
                 if (query.length < 3) {
-                    suggestionsDiv.innerHTML = '';
+                    citySuggestionsDiv.innerHTML = '';
                     return;
                 }
                 fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&type=city&limit=5&apiKey=${apiKey}`)
                     .then(response => response.json())
                     .then(data => {
-                        suggestionsDiv.innerHTML = '';
+                        citySuggestionsDiv.innerHTML = '';
                         data.features.forEach(feature => {
                             const cityName = feature.properties.city;
                             const country = feature.properties.country || '';
@@ -70,26 +122,68 @@
                             div.innerText = displayName;
                             div.onclick = () => {
                                 cityInput.value = cityName;
-                                suggestionsDiv.innerHTML = '';
-                                // Отправляем форму при выборе города
+                                citySuggestionsDiv.innerHTML = '';
                                 document.getElementById('filter-form').submit();
                             };
-                            suggestionsDiv.appendChild(div);
+                            citySuggestionsDiv.appendChild(div);
                         });
                     })
                     .catch(error => console.error('Error fetching cities:', error));
             });
 
-            document.addEventListener('click', function(e) {
-                if (!cityInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
-                    suggestionsDiv.innerHTML = '';
+            const interestInput = document.getElementById('interest-input');
+            const interestSuggestionsDiv = document.getElementById('interest-suggestions');
+
+            interestInput.addEventListener('input', function() {
+                const query = interestInput.value.trim();
+                if (query.length < 1) {
+                    interestSuggestionsDiv.innerHTML = '';
+                    return;
+                }
+                const suggestions = allInterests.filter(i => i.toLowerCase().includes(query.toLowerCase()));
+                interestSuggestionsDiv.innerHTML = '';
+                suggestions.forEach(interest => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-suggestion';
+                    div.innerText = interest;
+                    div.onclick = () => {
+                        addInterestFilter(interest);
+                        interestInput.value = '';
+                        interestSuggestionsDiv.innerHTML = '';
+                        document.getElementById('filter-form').submit();
+                    };
+                    interestSuggestionsDiv.appendChild(div);
+                });
+            });
+
+            const addInterestButton = document.getElementById('add-interest-button');
+            addInterestButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                const interest = interestInput.value.trim();
+                if (interest) {
+                    addInterestFilter(interest);
+                    interestInput.value = '';
+                    document.getElementById('filter-form').submit();
                 }
             });
-        };
 
-        function applySort() {
-            document.getElementById('filter-form').submit();
-        }
+            {% for interest in interest_filters %}
+                addInterestFilter('{{ interest|escapejs }}');
+            {% endfor %}
+
+            document.addEventListener('click', function(e) {
+                if (!cityInput.contains(e.target) && !citySuggestionsDiv.contains(e.target)) {
+                    citySuggestionsDiv.innerHTML = '';
+                }
+                if (!interestInput.contains(e.target) && !interestSuggestionsDiv.contains(e.target)) {
+                    interestSuggestionsDiv.innerHTML = '';
+                }
+            });
+
+            function applySort() {
+                document.getElementById('filter-form').submit();
+            }
+        };
     </script>
 </head>
 <body>
@@ -108,7 +202,15 @@
             <p>
                 <label>Город:</label>
                 <input type="text" id="city-input" name="city" value="{{ current_user_city|default:'' }}">
-                <div id="suggestions" class="autocomplete-suggestions"></div>
+                <div id="city-suggestions" class="autocomplete-suggestions"></div>
+            </p>
+            <p>
+                <label>Интересы:</label>
+                <input type="text" id="interest-input" placeholder="Добавить интерес">
+                <div id="interest-suggestions" class="autocomplete-suggestions"></div>
+                <div id="interest-filters-container">
+                </div>
+                <button type="button" id="add-interest-button">Добавить</button>
             </p>
             <p>
                 <label>Сортировка:</label>
@@ -126,6 +228,13 @@
                 <h3><a href="{% url 'profile-detail' user_id=data.user.id %}">{{ data.profile.name }} ({{ data.user.username }})</a></h3>
                 <p><strong>Город:</strong> {{ data.profile.location.name|default:"Не указан" }}</p>
                 <p><strong>Общие интересы:</strong> {{ data.common_interests }}</p>
+                <p><strong>Интересы:</strong>
+                    {% for interest in data.profile.interests.all %}
+                        <span class="interest-box">{{ interest.name }}</span>
+                    {% empty %}
+                        Не указано
+                    {% endfor %}
+                </p>
             </div>
         {% empty %}
             <p>Профилей не найдено.</p>

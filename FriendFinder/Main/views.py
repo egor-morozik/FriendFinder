@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -11,10 +12,10 @@ import random
 
 @login_required
 def profile_list(request):
-    profiles = UserProfile.objects.exclude(user=request.user).select_related('user', 'location')
-    
     current_profile = UserProfile.objects.get(user=request.user)
     current_user_interests = set(current_profile.interests.values_list('name', flat=True))
+    
+    profiles = UserProfile.objects.exclude(user=request.user).select_related('user', 'location')
     
     city_filter = request.GET.get('city', '')
     if city_filter:
@@ -22,6 +23,10 @@ def profile_list(request):
     else:
         if current_profile.location:
             city_filter = current_profile.location.name
+    
+    interest_filters = request.GET.getlist('interests', [])
+    if interest_filters:
+        profiles = profiles.filter(interests__name__in=interest_filters).distinct()
     
     sort_by = request.GET.get('sort', '')
     if sort_by == 'interests':
@@ -43,9 +48,14 @@ def profile_list(request):
             'common_interests': len(common_interests),
         })
     
+    all_interests = list(Interest.objects.values_list('name', flat=True))
+    all_interests_json = json.dumps(all_interests)
+    
     context = {
         'users_data': users_data,
         'current_user_city': city_filter,
+        'interest_filters': interest_filters,  
+        'all_interests_json': all_interests_json, 
     }
     return render(request, 'profiles/profile_list.html', context)
 
