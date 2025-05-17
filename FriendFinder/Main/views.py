@@ -2,35 +2,50 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import login, authenticate
-from django.contrib.auth import logout
+from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import UserProfile, Like, Match, Message, Interest, City
 from django.contrib import messages
+import random
 
 @login_required
 def profile_list(request):
-    users = User.objects.all()
-    profiles = UserProfile.objects.all()
-    current_user = request.user
-    matches = Match.objects.filter(user1=current_user) | Match.objects.filter(user2=current_user)
-    matched_user_ids = set()
-    for match in matches:
-        if match.user1 == current_user:
-            matched_user_ids.add(match.user2.id)
-        else:
-            matched_user_ids.add(match.user1.id)
-    sent_likes = Like.objects.filter(from_user=current_user, is_active=True)
-    sent_like_user_ids = {like.to_user.id for like in sent_likes}
-    received_likes = Like.objects.filter(to_user=current_user, is_active=True)
-    received_like_user_ids = {like.from_user.id for like in received_likes}
+    profiles = UserProfile.objects.exclude(user=request.user).select_related('user', 'location')
+    
+    current_profile = UserProfile.objects.get(user=request.user)
+    current_user_interests = set(current_profile.interests.values_list('name', flat=True))
+    
+    city_filter = request.GET.get('city', '')
+    if city_filter:
+        profiles = profiles.filter(location__name__iexact=city_filter)
+    else:
+        if current_profile.location:
+            city_filter = current_profile.location.name
+    
+    sort_by = request.GET.get('sort', '')
+    if sort_by == 'interests':
+        profiles = sorted(profiles, key=lambda p: len(current_user_interests.intersection(
+            set(p.interests.values_list('name', flat=True)))), reverse=True)
+    elif sort_by == 'alphabet':
+        profiles = profiles.order_by('name')
+    elif sort_by == 'random':
+        profiles = list(profiles)
+        random.shuffle(profiles)
+    
+    users_data = []
+    for profile in profiles:
+        user_interests = set(profile.interests.values_list('name', flat=True))
+        common_interests = current_user_interests.intersection(user_interests)
+        users_data.append({
+            'user': profile.user,
+            'profile': profile,
+            'common_interests': len(common_interests),
+        })
+    
     context = {
-        'users': users,
-        'profiles': profiles,
-        'matched_user_ids': matched_user_ids,
-        'sent_like_user_ids': sent_like_user_ids,
-        'received_like_user_ids': received_like_user_ids,
+        'users_data': users_data,
+        'current_user_city': city_filter,
     }
     return render(request, 'profiles/profile_list.html', context)
 
@@ -180,8 +195,6 @@ def login_view(request):
     else:
         form = AuthenticationForm()
     return render(request, 'profiles/login.html', {'form': form})
-
-from django.contrib.auth import logout
 
 def logout_view(request):
     logout(request)

@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Список пользователей</title>
+    <title>Список профилей</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         .sidebar {
             width: 200px;
@@ -16,51 +18,117 @@
             margin-left: 220px;
             padding: 20px;
         }
+        .profile-card {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .autocomplete-suggestions {
+            border: 1px solid #ccc;
+            background: white;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            z-index: 1000;
+            width: 300px;
+        }
+        .autocomplete-suggestion {
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #f0f0f0;
+        }
+        .filter-form {
+            margin-bottom: 20px;
+        }
     </style>
+    <script>
+        const apiKey = "d306877a79e54109ba81d8f995966cc1";
+
+        window.onload = function() {
+            const cityInput = document.getElementById('city-input');
+            const suggestionsDiv = document.getElementById('suggestions');
+
+            cityInput.addEventListener('input', function() {
+                const query = cityInput.value;
+                if (query.length < 3) {
+                    suggestionsDiv.innerHTML = '';
+                    return;
+                }
+                fetch(`https://api.geoapify.com/v1/geocode/autocomplete?text=${encodeURIComponent(query)}&type=city&limit=5&apiKey=${apiKey}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        suggestionsDiv.innerHTML = '';
+                        data.features.forEach(feature => {
+                            const cityName = feature.properties.city;
+                            const country = feature.properties.country || '';
+                            const displayName = `${cityName}, ${country}`;
+                            const div = document.createElement('div');
+                            div.className = 'autocomplete-suggestion';
+                            div.innerText = displayName;
+                            div.onclick = () => {
+                                cityInput.value = cityName;
+                                suggestionsDiv.innerHTML = '';
+                                // Отправляем форму при выборе города
+                                document.getElementById('filter-form').submit();
+                            };
+                            suggestionsDiv.appendChild(div);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching cities:', error));
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!cityInput.contains(e.target) && !suggestionsDiv.contains(e.target)) {
+                    suggestionsDiv.innerHTML = '';
+                }
+            });
+        };
+
+        function applySort() {
+            document.getElementById('filter-form').submit();
+        }
+    </script>
 </head>
 <body>
     <div class="sidebar">
         <h3>Навигация</h3>
         <ul>
             <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
-            {% if request.user.is_authenticated %}
-                <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
-                <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
-                <li><a href="{% url 'logout' %}">Выйти</a></li>
-            {% else %}
-                <li><a href="{% url 'register' %}">Регистрация</a></li>
-                <li><a href="{% url 'login' %}">Вход</a></li>
-            {% endif %}
+            <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
+            <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+            <li><a href="{% url 'logout' %}">Выйти</a></li>
         </ul>
     </div>
     <div class="content">
-        <h2>Список пользователей</h2>
-        <p>Вы вошли как: {{ request.user.username }}</p>
-        <ul>
-            {% for user in users %}
-                {% if user != request.user %}
-                    {% with profile=profiles|first|default:user.profile %}
-                        <li>
-                            <a href="{% url 'profile-detail' user_id=user.id %}">{{ profile.name }} ({{ user.username }})</a>
-                            - Возраст: {{ profile.age }}, Интересы: {{ profile.interests }}
-                            <form method="post" action="{% url 'create-match' user.id %}" style="display:inline;">
-                                {% csrf_token %}
-                                {% if user.id in matched_user_ids %}
-                                    <button type="button" disabled>Уже в мэтче</button>
-                                {% elif user.id in sent_like_user_ids %}
-                                    <button type="submit">Ожидаем ответа</button>
-                                {% else %}
-                                    <button type="submit">Создать мэтч</button>
-                                {% endif %}
-                            </form>
-                            <a href="{% url 'chat' user.id %}">Перейти в чат</a>
-                        </li>
-                    {% endwith %}
-                {% endif %}
-            {% endfor %}
-        </ul>
-        {% for message in messages %}
-            <p>{{ message }}</p>
+        <h2>Список профилей</h2>
+        <form id="filter-form" method="get" class="filter-form">
+            <p>
+                <label>Город:</label>
+                <input type="text" id="city-input" name="city" value="{{ current_user_city|default:'' }}">
+                <div id="suggestions" class="autocomplete-suggestions"></div>
+            </p>
+            <p>
+                <label>Сортировка:</label>
+                <select name="sort" onchange="applySort()">
+                    <option value="">Без сортировки</option>
+                    <option value="interests" {% if request.GET.sort == 'interests' %}selected{% endif %}>По общим интересам</option>
+                    <option value="alphabet" {% if request.GET.sort == 'alphabet' %}selected{% endif %}>По алфавиту</option>
+                </select>
+            </p>
+            <button type="submit" name="sort" value="random">Перемешать</button>
+        </form>
+
+        {% for data in users_data %}
+            <div class="profile-card">
+                <h3><a href="{% url 'profile-detail' user_id=data.user.id %}">{{ data.profile.name }} ({{ data.user.username }})</a></h3>
+                <p><strong>Город:</strong> {{ data.profile.location.name|default:"Не указан" }}</p>
+                <p><strong>Общие интересы:</strong> {{ data.common_interests }}</p>
+            </div>
+        {% empty %}
+            <p>Профилей не найдено.</p>
         {% endfor %}
     </div>
 </body>
