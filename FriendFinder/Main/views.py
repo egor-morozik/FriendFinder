@@ -209,3 +209,43 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('login')
+
+@login_required
+def profile_recommendations(request):
+    current_profile = UserProfile.objects.get(user=request.user)
+    current_user_interests = set(current_profile.interests.values_list('name', flat=True))
+    
+    profiles = UserProfile.objects.exclude(user=request.user).select_related('user', 'location')
+    if current_profile.location:
+        profiles = profiles.filter(location=current_profile.location)
+
+    profiles_list = []
+    for profile in profiles:
+        user_interests = set(profile.interests.values_list('name', flat=True))
+        common_interests = current_user_interests.intersection(user_interests)
+        profiles_list.append({
+            'user': profile.user,
+            'profile': profile,
+            'common_interests': len(common_interests),
+        })
+    profiles_list.sort(key=lambda x: x['common_interests'], reverse=True)
+    
+    current_index = int(request.GET.get('index', 0))
+    total_profiles = len(profiles_list)
+
+    if total_profiles == 0:
+        return render(request, 'profiles/recommendations.html', {'profile_data': None, 'current_index': 0, 'total_profiles': 0})
+    
+    if current_index < 0:
+        current_index = 0
+    elif current_index >= total_profiles:
+        current_index = total_profiles - 1
+
+    profile_data = profiles_list[current_index] if total_profiles > 0 else None
+    
+    context = {
+        'profile_data': profile_data,
+        'current_index': current_index,
+        'total_profiles': total_profiles,
+    }
+    return render(request, 'profiles/recommendations.html', context)

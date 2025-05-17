@@ -12,4 +12,5 @@ urlpatterns = [
     path('chat/<int:user_id>/', views.chat, name='chat'),
     path('create-match/<int:user_id>/', views.create_match, name='create-match'),
     path('edit-profile/', views.edit_profile, name='edit-profile'),
+    path('recommendations/', views.profile_recommendations, name='profile-recommendations'),
 ]

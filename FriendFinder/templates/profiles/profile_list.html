@@ -73,13 +73,11 @@
     </style>
     <script>
         const apiKey = "d306877a79e54109ba81d8f995966cc1";
-        // Парсим JSON-строку в массив
         const allInterests = JSON.parse('{{ all_interests_json|escapejs }}') || [];
 
-        // Функции для работы с интересами
         function addInterestFilter(interest) {
             if (!interest || interest.trim() === '') return;
-            if (document.querySelector(`[data-interest="${interest}"]`)) return; // Проверка на дубликаты
+            if (document.querySelector(`[data-interest="${interest}"]`)) return; 
 
             const interestBox = document.createElement('span');
             interestBox.className = 'interest-box';
@@ -109,10 +107,8 @@
         }
 
         window.onload = function() {
-            // Отладочный вывод
             console.log("All interests:", allInterests);
 
-            // Автодополнение для поля города
             const cityInput = document.getElementById('city-input');
             const citySuggestionsDiv = document.getElementById('city-suggestions');
 
@@ -144,7 +140,6 @@
                     .catch(error => console.error('Error fetching cities:', error));
             });
 
-            // Автодополнение и добавление интересов
             const interestInput = document.getElementById('interest-input');
             const interestSuggestionsDiv = document.getElementById('interest-suggestions');
 
@@ -170,7 +165,6 @@
                 });
             });
 
-            // Обработчик кнопки "Добавить"
             const addInterestButton = document.getElementById('add-interest-button');
             addInterestButton.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -182,12 +176,10 @@
                 }
             });
 
-            // Инициализация существующих фильтров
             {% for interest in interest_filters %}
                 addInterestFilter('{{ interest|escapejs }}');
             {% endfor %}
 
-            // Закрытие автодополнения при клике вне
             document.addEventListener('click', function(e) {
                 if (!cityInput.contains(e.target) && !citySuggestionsDiv.contains(e.target)) {
                     citySuggestionsDiv.innerHTML = '';
@@ -197,7 +189,6 @@
                 }
             });
 
-            // Функция для отправки формы с сортировкой
             function applySort() {
                 document.getElementById('filter-form').submit();
             }
@@ -211,12 +202,12 @@
             <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
             <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
             <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+            <li><a href="{% url 'profile-recommendations' %}">Рекомендации</a></li>
             <li><a href="{% url 'logout' %}">Выйти</a></li>
         </ul>
     </div>
     <div class="content">
         <h2>Список профилей</h2>
-        <!-- Форма фильтров -->
         <form id="filter-form" method="get" class="filter-form">
             <p>
                 <label>Город:</label>
@@ -228,7 +219,6 @@
                 <input type="text" id="interest-input" placeholder="Добавить интерес">
                 <div id="interest-suggestions" class="autocomplete-suggestions"></div>
                 <div id="interest-filters-container">
-                    <!-- Существующие фильтры будут добавлены через JavaScript -->
                 </div>
                 <button type="button" id="add-interest-button">Добавить</button>
             </p>
@@ -243,7 +233,6 @@
             <button type="submit" name="sort" value="random">Перемешать</button>
         </form>
 
-        <!-- Список профилей -->
         {% for data in users_data %}
             <div class="profile-card">
                 {% if data.profile.photo %}

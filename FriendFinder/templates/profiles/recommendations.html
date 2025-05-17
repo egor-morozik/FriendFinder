@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Рекомендации</title>
+    <style>
+        .sidebar {
+            width: 200px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            text-align: center;
+        }
+        .recommendation-card {
+            border: 1px solid #ccc;
+            padding: 20px;
+            border-radius: 5px;
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .profile-image {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 10px;
+        }
+        .interest-box {
+            display: inline-block;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            padding: 5px 10px;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .navigation {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .nav-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .nav-button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h3>Навигация</h3>
+        <ul>
+            <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
+            <li><a href="{% url 'profile-recommendations' %}">Рекомендации</a></li>
+            <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
+            <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+            <li><a href="{% url 'logout' %}">Выйти</a></li>
+        </ul>
+    </div>
+    <div class="content">
+        <h2>Рекомендации</h2>
+        {% if profile_data %}
+            <div class="recommendation-card">
+                {% if profile_data.profile.photo %}
+                    <img src="{{ profile_data.profile.photo.url }}" alt="{{ profile_data.profile.name }}" class="profile-image">
+                {% else %}
+                    <div class="profile-image" style="background-color: #ccc;">No Image</div>
+                {% endif %}
+                <h3><a href="{% url 'profile-detail' user_id=profile_data.user.id %}">{{ profile_data.profile.name }} ({{ profile_data.user.username }})</a></h3>
+                <p><strong>Общие интересы:</strong> {{ profile_data.common_interests }}</p>
+                <p><strong>Интересы:</strong>
+                    {% for interest in profile_data.profile.interests.all %}
+                        <span class="interest-box">{{ interest.name }}</span>
+                    {% empty %}
+                        Не указано
+                    {% endfor %}
+                </p>
+                <p><strong>Статус:</strong> {{ profile_data.profile.bio|default:"Не указано" }}</p>
+            </div>
+            <div class="navigation">
+                <a href="{% url 'profile-recommendations' %}?index={{ current_index|add:'-1' }}">
+                    <button class="nav-button" {% if current_index <= 0 %}disabled{% endif %}>← Предыдущий</button>
+                </a>
+                <a href="{% url 'profile-recommendations' %}?index={{ current_index|add:'1' }}">
+                    <button class="nav-button" {% if current_index >= total_profiles|add:'-1' %}disabled{% endif %}>Следующий →</button>
+                </a>
+            </div>
+        {% else %}
+            <p>Рекомендаций не найдено. Попробуйте изменить город или добавить интересы в своем профиле.</p>
+        {% endif %}
+    </div>
+</body>
+</html>
