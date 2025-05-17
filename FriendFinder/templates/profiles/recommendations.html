@@ -83,6 +83,7 @@
                     <div class="profile-image" style="background-color: #ccc;">No Image</div>
                 {% endif %}
                 <h3><a href="{% url 'profile-detail' user_id=profile_data.user.id %}">{{ profile_data.profile.name }} ({{ profile_data.user.username }})</a></h3>
+                <p><strong>Возраст:</strong> {{ profile_data.age|default:"Не указано" }}</p>
                 <p><strong>Общие интересы:</strong> {{ profile_data.common_interests }}</p>
                 <p><strong>Интересы:</strong>
                     {% for interest in profile_data.profile.interests.all %}

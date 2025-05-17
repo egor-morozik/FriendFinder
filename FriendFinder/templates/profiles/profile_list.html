@@ -77,7 +77,7 @@
 
         function addInterestFilter(interest) {
             if (!interest || interest.trim() === '') return;
-            if (document.querySelector(`[data-interest="${interest}"]`)) return; 
+            if (document.querySelector(`[data-interest="${interest}"]`)) return; // Проверка на дубликаты
 
             const interestBox = document.createElement('span');
             interestBox.className = 'interest-box';
@@ -200,9 +200,9 @@
         <h3>Навигация</h3>
         <ul>
             <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
+            <li><a href="{% url 'profile-recommendations' %}">Рекомендации</a></li>
             <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
             <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
-            <li><a href="{% url 'profile-recommendations' %}">Рекомендации</a></li>
             <li><a href="{% url 'logout' %}">Выйти</a></li>
         </ul>
     </div>
@@ -221,6 +221,11 @@
                 <div id="interest-filters-container">
                 </div>
                 <button type="button" id="add-interest-button">Добавить</button>
+            </p>
+            <p>
+                <label>Разброс возраста (± лет):</label>
+                <input type="number" name="age_range" value="{{ age_range|default:'5' }}" min="0" max="50">
+                <small>Ваш возраст: {{ current_user_age|default:"Не указан" }}</small>
             </p>
             <p>
                 <label>Сортировка:</label>
@@ -242,6 +247,7 @@
                 {% endif %}
                 <div>
                     <h3><a href="{% url 'profile-detail' user_id=data.user.id %}">{{ data.profile.name }} ({{ data.user.username }})</a></h3>
+                    <p><strong>Возраст:</strong> {{ data.age|default:"Не указано" }}</p>
                     <p><strong>Город:</strong> {{ data.profile.location.name|default:"Не указан" }}</p>
                     <p><strong>Общие интересы:</strong> {{ data.common_interests }}</p>
                     <p><strong>Интересы:</strong>

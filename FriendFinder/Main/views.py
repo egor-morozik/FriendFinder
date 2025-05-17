@@ -28,6 +28,16 @@ def profile_list(request):
     if interest_filters:
         profiles = profiles.filter(interests__name__in=interest_filters).distinct()
     
+    age_range = request.GET.get('age_range', '')
+    if age_range and current_profile.age:
+        try:
+            age_range = int(age_range)
+            min_age = max(0, current_profile.age - age_range)
+            max_age = current_profile.age + age_range
+            profiles = profiles.filter(age__gte=min_age, age__lte=max_age)
+        except ValueError:
+            pass  
+    
     sort_by = request.GET.get('sort', '')
     if sort_by == 'interests':
         profiles = sorted(profiles, key=lambda p: len(current_user_interests.intersection(
@@ -46,6 +56,7 @@ def profile_list(request):
             'user': profile.user,
             'profile': profile,
             'common_interests': len(common_interests),
+            'age': profile.age,  
         })
     
     all_interests = list(Interest.objects.values_list('name', flat=True))
@@ -54,8 +65,10 @@ def profile_list(request):
     context = {
         'users_data': users_data,
         'current_user_city': city_filter,
-        'interest_filters': interest_filters,  
-        'all_interests_json': all_interests_json, 
+        'interest_filters': interest_filters,
+        'all_interests_json': all_interests_json,
+        'current_user_age': current_profile.age,  
+        'age_range': age_range, 
     }
     return render(request, 'profiles/profile_list.html', context)
 
@@ -218,7 +231,7 @@ def profile_recommendations(request):
     profiles = UserProfile.objects.exclude(user=request.user).select_related('user', 'location')
     if current_profile.location:
         profiles = profiles.filter(location=current_profile.location)
-
+    
     profiles_list = []
     for profile in profiles:
         user_interests = set(profile.interests.values_list('name', flat=True))
@@ -227,12 +240,13 @@ def profile_recommendations(request):
             'user': profile.user,
             'profile': profile,
             'common_interests': len(common_interests),
+            'age': profile.age,  
         })
     profiles_list.sort(key=lambda x: x['common_interests'], reverse=True)
     
     current_index = int(request.GET.get('index', 0))
     total_profiles = len(profiles_list)
-
+    
     if total_profiles == 0:
         return render(request, 'profiles/recommendations.html', {'profile_data': None, 'current_index': 0, 'total_profiles': 0})
     
@@ -240,7 +254,7 @@ def profile_recommendations(request):
         current_index = 0
     elif current_index >= total_profiles:
         current_index = total_profiles - 1
-
+    
     profile_data = profiles_list[current_index] if total_profiles > 0 else None
     
     context = {
