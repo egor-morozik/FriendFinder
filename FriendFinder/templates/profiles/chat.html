@@ -60,14 +60,38 @@
             padding: 10px;
             margin: 5px 0;
             border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .message.current-user {
+            background: #6e8efb;
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+        .message.other-user {
             background: #e0e0e0;
+            color: #333;
+            margin-right: auto;
+            text-align: left;
         }
         .message strong {
+            display: block;
+            font-size: 0.9em;
+        }
+        .message.current-user strong {
+            color: #ffffff;
+        }
+        .message.other-user strong {
             color: #6e8efb;
         }
         .message span {
+            display: block;
             font-size: 0.8em;
             color: #777;
+        }
+        .message.current-user span {
+            color: #e0e0e0;
         }
         .no-messages {
             color: #777;
@@ -138,6 +162,9 @@
             .message-list {
                 max-height: 300px;
             }
+            .message {
+                max-width: 85%;
+            }
         }
     </style>
 </head>
@@ -151,9 +178,9 @@
         {% if not match %}
             <p class="no-match">Чат доступен только после мэтча. Лайкните пользователя для начала!</p>
         {% else %}
-            <div class="message-list">
+            <div class="message-list" id="message-list">
                 {% for message in messages %}
-                    <div class="message">
+                    <div class="message {% if message.sender == request.user %}current-user{% else %}other-user{% endif %}">
                         <strong>{{ message.sender.username }}:</strong> {{ message.content }}
                         <span>({{ message.created_at }})</span>
                     </div>
@@ -161,12 +188,53 @@
                     <p class="no-messages">Нет сообщений. Начните чат!</p>
                 {% endfor %}
             </div>
-            <form method="post">
-                {% csrf_token %}
-                <textarea name="content" rows="4" cols="50" placeholder="Введите сообщение..."></textarea>
+            <form id="chat-form">
+                <textarea name="content" rows="4" cols="50" placeholder="Введите сообщение..." id="message-input"></textarea>
                 <button type="submit">Отправить</button>
             </form>
         {% endif %}
     </div>
+
+    {% if match %}
+    <script>
+    const userId = {{ other_user.id }};
+    const currentUser = "{{ request.user.username }}";
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + userId + '/'
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const messageList = document.getElementById('message-list');
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ' + (data.sender === currentUser ? 'current-user' : 'other-user');
+        messageDiv.innerHTML = `<strong>${data.sender}:</strong> ${data.message} <span>(${data.created_at})</span>`;
+        messageList.appendChild(messageDiv);
+        messageList.scrollTop = messageList.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    document.getElementById('chat-form').onsubmit = function(e) {
+        e.preventDefault();
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+        if (message) {
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            messageInput.value = '';
+        }
+        return false;
+    };
+
+    window.onload = function() {
+        const messageList = document.getElementById('message-list');
+        messageList.scrollTop = messageList.scrollHeight;
+    };
+</script>
+    {% endif %}
 </body>
 </html>

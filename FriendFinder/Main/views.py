@@ -175,11 +175,6 @@ def chat(request, user_id):
     match = Match.objects.filter(user1=current_user, user2=other_user).first() or \
             Match.objects.filter(user1=other_user, user2=current_user).first()
     messages = Message.objects.filter(match=match) if match else []
-    if request.method == 'POST':
-        content = request.POST.get('content', '')
-        if match and content:
-            Message.objects.create(match=match, sender=current_user, content=content)
-            return redirect('chat', user_id=user_id)
     context = {'other_user': other_user, 'messages': messages, 'match': match}
     return render(request, 'profiles/chat.html', context)
 
