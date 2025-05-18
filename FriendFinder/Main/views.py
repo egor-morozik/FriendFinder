@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from .models import UserProfile, Like, Match, Message, Interest, City
 from django.contrib import messages
+from django.core.cache import cache
 import random
 
 @login_required
@@ -174,8 +175,22 @@ def chat(request, user_id):
     current_user = request.user
     match = Match.objects.filter(user1=current_user, user2=other_user).first() or \
             Match.objects.filter(user1=other_user, user2=current_user).first()
-    messages = Message.objects.filter(match=match) if match else []
-    context = {'other_user': other_user, 'messages': messages, 'match': match}
+    
+    if not match:
+        context = {'other_user': other_user, 'messages': [], 'match': None}
+    else:
+        messages_qs = Message.objects.filter(match=match).select_related('sender').order_by('created_at')
+        messages = [{
+            'message': msg.content,
+            'sender': msg.sender.username,
+            'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        } for msg in messages_qs]
+
+        cache_key = f"chat_messages:chat_{min(current_user.id, other_user.id)}_{max(current_user.id, other_user.id)}"
+        cache.set(cache_key, messages, timeout=3600)
+
+        context = {'other_user': other_user, 'messages': messages, 'match': match}
+
     return render(request, 'profiles/chat.html', context)
 
 def like_create(request):

@@ -180,8 +180,8 @@
         {% else %}
             <div class="message-list" id="message-list">
                 {% for message in messages %}
-                    <div class="message {% if message.sender == request.user %}current-user{% else %}other-user{% endif %}">
-                        <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+                    <div class="message {% if message.sender == request.user.username %}current-user{% else %}other-user{% endif %}">
+                        <strong>{{ message.sender }}:</strong> {{ message.message }}
                         <span>({{ message.created_at }})</span>
                     </div>
                 {% empty %}
@@ -200,10 +200,15 @@
     const userId = {{ other_user.id }};
     const currentUser = "{{ request.user.username }}";
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + userId + '/'
+        (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + '/ws/chat/' + userId + '/'
     );
 
+    chatSocket.onopen = function(e) {
+        console.log("WebSocket connection opened for /ws/chat/" + userId);
+    };
+
     chatSocket.onmessage = function(e) {
+        console.log("Message received:", e.data); // Отладка
         const data = JSON.parse(e.data);
         const messageList = document.getElementById('message-list');
         const messageDiv = document.createElement('div');
@@ -214,7 +219,11 @@
     };
 
     chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
+        console.error('Chat socket closed unexpectedly:', e);
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
     };
 
     document.getElementById('chat-form').onsubmit = function(e) {
@@ -225,6 +234,7 @@
             chatSocket.send(JSON.stringify({
                 'message': message
             }));
+            console.log("Message sent to server:", message); // Отладка
             messageInput.value = '';
         }
         return false;
@@ -234,7 +244,7 @@
         const messageList = document.getElementById('message-list');
         messageList.scrollTop = messageList.scrollHeight;
     };
-</script>
+    </script>
     {% endif %}
 </body>
 </html>
