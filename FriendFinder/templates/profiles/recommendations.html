@@ -3,62 +3,213 @@
 <head>
     <title>Рекомендации</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            color: #333;
+        }
         .sidebar {
             width: 200px;
             position: fixed;
             top: 0;
             left: 0;
             bottom: 0;
-            background-color: #f4f4f4;
+            background: #ffffff;
             padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        .sidebar h3 {
+            color: #6e8efb;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .sidebar ul {
+            list-style: none;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            color: #555;
+            text-decoration: none;
+            font-size: 1.1em;
+            transition: color 0.3s ease;
+        }
+        .sidebar a:hover {
+            color: #6e8efb;
         }
         .content {
             margin-left: 220px;
-            padding: 20px;
+            padding: 40px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            justify-content: center;
+        }
+        h2 {
+            color: #fff;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
         }
         .recommendation-card {
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 5px;
-            max-width: 400px;
-            margin: 0 auto;
-            background-color: #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .recommendation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
         }
         .profile-image {
-            width: 100px;
-            height: 100px;
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
             object-fit: cover;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            border: 3px solid #6e8efb;
+            box-shadow: 0 0 10px rgba(110, 142, 251, 0.3);
+        }
+        .no-image {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #777;
+            font-size: 1em;
+            margin-bottom: 15px;
+            border: 3px solid #ccc;
+        }
+        h3 a {
+            color: #6e8efb;
+            text-decoration: none;
+            font-size: 1.5em;
+            transition: color 0.3s ease;
+        }
+        h3 a:hover {
+            color: #5d7de8;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 1.1em;
+            color: #555;
+        }
+        p strong {
+            color: #333;
         }
         .interest-box {
             display: inline-block;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            padding: 5px 10px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            padding: 6px 12px;
             margin: 5px;
-            font-size: 14px;
+            font-size: 0.9em;
+            color: #333;
+            transition: background-color 0.3s ease;
+        }
+        .interest-box:hover {
+            background: #d0d0d0;
         }
         .navigation {
-            margin-top: 20px;
+            margin-top: 30px;
             display: flex;
             justify-content: center;
             gap: 20px;
         }
         .nav-button {
-            background-color: #007bff;
+            background: #6e8efb;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
+            padding: 12px 24px;
+            border-radius: 25px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 1em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .nav-button:hover {
+            background: #5d7de8;
+            transform: scale(1.05);
         }
         .nav-button:disabled {
-            background-color: #cccccc;
+            background: #cccccc;
             cursor: not-allowed;
+            transform: none;
+        }
+        .nav-button::before {
+            content: '';
+            font-family: 'Arial';
+        }
+        .nav-button.prev::before {
+            content: '←';
+        }
+        .nav-button.next::before {
+            content: '→';
+        }
+        .empty-message {
+            color: #fff;
+            font-size: 1.2em;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        /* Анимация появления */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: static;
+                box-shadow: none;
+            }
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .recommendation-card {
+                max-width: 100%;
+                padding: 20px;
+            }
+            h2 {
+                font-size: 2em;
+            }
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
@@ -80,7 +231,7 @@
                 {% if profile_data.profile.photo %}
                     <img src="{{ profile_data.profile.photo.url }}" alt="{{ profile_data.profile.name }}" class="profile-image">
                 {% else %}
-                    <div class="profile-image" style="background-color: #ccc;">No Image</div>
+                    <div class="no-image">No Image</div>
                 {% endif %}
                 <h3><a href="{% url 'profile-detail' user_id=profile_data.user.id %}">{{ profile_data.profile.name }} ({{ profile_data.user.username }})</a></h3>
                 <p><strong>Возраст:</strong> {{ profile_data.age|default:"Не указано" }}</p>
@@ -96,14 +247,14 @@
             </div>
             <div class="navigation">
                 <a href="{% url 'profile-recommendations' %}?index={{ current_index|add:'-1' }}">
-                    <button class="nav-button" {% if current_index <= 0 %}disabled{% endif %}>← Предыдущий</button>
+                    <button class="nav-button prev" {% if current_index <= 0 %}disabled{% endif %}>Предыдущий</button>
                 </a>
                 <a href="{% url 'profile-recommendations' %}?index={{ current_index|add:'1' }}">
-                    <button class="nav-button" {% if current_index >= total_profiles|add:'-1' %}disabled{% endif %}>Следующий →</button>
+                    <button class="nav-button next" {% if current_index >= total_profiles|add:'-1' %}disabled{% endif %}>Следующий</button>
                 </a>
             </div>
         {% else %}
-            <p>Рекомендаций не найдено. Попробуйте изменить город или добавить интересы в своем профиле.</p>
+            <p class="empty-message">Рекомендаций не найдено. Попробуйте изменить город или добавить интересы в своем профиле.</p>
         {% endif %}
     </div>
 </body>

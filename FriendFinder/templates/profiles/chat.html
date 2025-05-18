@@ -2,26 +2,171 @@
 <html>
 <head>
     <title>Чат с {{ other_user.username }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        h2 {
+            color: #6e8efb;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .nav-links {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .nav-links a {
+            color: #6e8efb;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 1em;
+            transition: color 0.3s ease;
+        }
+        .nav-links a:hover {
+            color: #5d7de8;
+        }
+        .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+        }
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 10px;
+            background: #e0e0e0;
+        }
+        .message strong {
+            color: #6e8efb;
+        }
+        .message span {
+            font-size: 0.8em;
+            color: #777;
+        }
+        .no-messages {
+            color: #777;
+            text-align: center;
+        }
+        .no-match {
+            color: #d32f2f;
+            text-align: center;
+            background: #f8d7da;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            resize: vertical;
+            min-height: 100px;
+            font-size: 1em;
+            margin-bottom: 10px;
+            transition: border-color 0.3s ease;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #6e8efb;
+            box-shadow: 0 0 5px rgba(110, 142, 251, 0.5);
+        }
+        button {
+            background: #6e8efb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background: #5d7de8;
+            transform: scale(1.05);
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                padding: 20px;
+                max-width: 100%;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+            .message-list {
+                max-height: 300px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Чат с {{ other_user.username }}</h2>
-    <a href="{% url 'profile-list' %}">Назад к списку</a>
-    <a href="{% url 'logout' %}">Выйти</a>
-    {% if not match %}
-        <p>Чат доступен только после мэтча. Лайкните пользователя для начала!</p>
-    {% else %}
-        <div>
-            {% for message in messages %}
-                <p><strong>{{ message.sender.username }}:</strong> {{ message.content }} ({{ message.created_at }})</p>
-            {% empty %}
-                <p>Нет сообщений. Начните чат!</p>
-            {% endfor %}
+    <div class="chat-container">
+        <div class="nav-links">
+            <a href="{% url 'profile-list' %}">Назад к списку</a>
+            <a href="{% url 'logout' %}">Выйти</a>
         </div>
-        <form method="post">
-            {% csrf_token %}
-            <textarea name="content" rows="4" cols="50"></textarea><br>
-            <button type="submit">Отправить</button>
-        </form>
-    {% endif %}
+        <h2>Чат с {{ other_user.username }}</h2>
+        {% if not match %}
+            <p class="no-match">Чат доступен только после мэтча. Лайкните пользователя для начала!</p>
+        {% else %}
+            <div class="message-list">
+                {% for message in messages %}
+                    <div class="message">
+                        <strong>{{ message.sender.username }}:</strong> {{ message.content }}
+                        <span>({{ message.created_at }})</span>
+                    </div>
+                {% empty %}
+                    <p class="no-messages">Нет сообщений. Начните чат!</p>
+                {% endfor %}
+            </div>
+            <form method="post">
+                {% csrf_token %}
+                <textarea name="content" rows="4" cols="50" placeholder="Введите сообщение..."></textarea>
+                <button type="submit">Отправить</button>
+            </form>
+        {% endif %}
+    </div>
 </body>
 </html>

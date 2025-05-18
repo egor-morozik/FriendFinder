@@ -5,34 +5,115 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            color: #333;
+        }
         .sidebar {
             width: 200px;
             position: fixed;
             top: 0;
             left: 0;
             bottom: 0;
-            background-color: #f4f4f4;
+            background: #ffffff;
             padding: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .sidebar h3 {
+            color: #6e8efb;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .sidebar ul {
+            list-style: none;
+        }
+        .sidebar li {
+            margin-bottom: 10px;
+        }
+        .sidebar a {
+            color: #555;
+            text-decoration: none;
+            font-size: 1.1em;
+            transition: color 0.3s ease;
+        }
+        .sidebar a:hover {
+            color: #6e8efb;
         }
         .content {
             margin-left: 220px;
-            padding: 20px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            color: #fff;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
+        }
+        .edit-form {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .edit-form p {
+            margin: 15px 0;
+        }
+        label {
+            display: block;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #6e8efb;
+            box-shadow: 0 0 5px rgba(110, 142, 251, 0.5);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
         }
         .interest-box {
             display: inline-block;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            padding: 5px 10px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            padding: 6px 12px;
             margin: 5px;
-            font-size: 14px;
+            font-size: 0.9em;
+            color: #333;
         }
         .interest-input {
             margin: 5px 0;
+            width: calc(100% - 20px);
         }
         #map {
             height: 300px;
             width: 100%;
             margin-top: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         .autocomplete-suggestions {
             border: 1px solid #ccc;
@@ -42,17 +123,81 @@
             position: absolute;
             z-index: 1000;
             width: 300px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
         .autocomplete-suggestion {
-            padding: 5px 10px;
+            padding: 8px 10px;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
         .autocomplete-suggestion:hover {
             background-color: #f0f0f0;
         }
+        button {
+            background: #6e8efb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 5px;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background: #5d7de8;
+            transform: scale(1.05);
+        }
+        a.back-link {
+            color: #fff;
+            text-decoration: none;
+            font-size: 1em;
+            margin-bottom: 20px;
+            display: inline-block;
+            transition: color 0.3s ease;
+        }
+        a.back-link:hover {
+            color: #e0e0e0;
+        }
         .error-message {
-            color: red;
-            font-size: 14px;
+            color: #d32f2f;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        .success-message {
+            color: #28a745;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                position: static;
+                box-shadow: none;
+            }
+            .content {
+                margin-left: 0;
+                padding: 20px;
+            }
+            .edit-form {
+                padding: 20px;
+                max-width: 100%;
+            }
+            h2 {
+                font-size: 2em;
+            }
         }
     </style>
     <script>
@@ -156,13 +301,14 @@
             <li><a href="{% url 'profile-list' %}">Список профилей</a></li>
             <li><a href="{% url 'profile-detail' user_id=request.user.id %}">Мой профиль</a></li>
             <li><a href="{% url 'edit-profile' %}">Редактировать профиль</a></li>
+            <li><a href="{% url 'profile-recommendations' %}">Рекомендации</a></li>
             <li><a href="{% url 'logout' %}">Выйти</a></li>
         </ul>
     </div>
     <div class="content">
         <h2>Редактировать профиль</h2>
-        <a href="{% url 'profile-detail' user_id=request.user.id %}">Назад к профилю</a>
-        <form method="post" enctype="multipart/form-data">
+        <a href="{% url 'profile-detail' user_id=request.user.id %}" class="back-link">Назад к профилю</a>
+        <form method="post" enctype="multipart/form-data" class="edit-form">
             {% csrf_token %}
             <p><label>Имя:</label> <input type="text" name="name" value="{{ profile.name }}"></p>
             <p><label>Username:</label> <input type="text" name="username" value="{{ user.username }}"></p>

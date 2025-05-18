@@ -4,65 +4,217 @@
 <head>
     <title>Профиль {{ profile.user.username }}</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            min-height: 100vh;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .profile-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        .profile-container:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+        h2 {
+            color: #6e8efb;
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
         .avatar {
-            width: 100px;
-            height: 100px;
+            width: 150px;
+            height: 150px;
             object-fit: cover;
-            border-radius: 10px;
+            border-radius: 50%;
+            display: block;
+            margin: 0 auto 20px;
+            border: 3px solid #6e8efb;
+            box-shadow: 0 0 10px rgba(110, 142, 251, 0.3);
+        }
+        .default-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #777;
+            font-size: 1em;
+            margin: 0 auto 20px;
+            border: 3px solid #ccc;
+        }
+        p {
+            margin: 10px 0;
+            font-size: 1.1em;
+            color: #555;
+        }
+        p strong {
+            color: #333;
         }
         .interest-box {
             display: inline-block;
-            background-color: #e0e0e0;
-            border-radius: 5px;
-            padding: 5px 10px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            padding: 6px 12px;
             margin: 5px;
-            font-size: 14px;
+            font-size: 0.9em;
+            color: #333;
+            transition: background-color 0.3s ease;
+        }
+        .interest-box:hover {
+            background: #d0d0d0;
+        }
+        .nav-links {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .nav-links a, .action-links a {
+            color: #6e8efb;
+            text-decoration: none;
+            margin: 0 10px;
+            font-size: 1em;
+            transition: color 0.3s ease;
+        }
+        .nav-links a:hover, .action-links a:hover {
+            color: #5d7de8;
+        }
+        .action-links {
+            margin-top: 20px;
+            text-align: center;
+        }
+        button {
+            background: #6e8efb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background: #5d7de8;
+            transform: scale(1.05);
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Анимация */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .profile-container {
+                padding: 20px;
+                max-width: 100%;
+            }
+            h2 {
+                font-size: 1.5em;
+            }
+            .avatar, .default-avatar {
+                width: 120px;
+                height: 120px;
+            }
+            button, .nav-links a, .action-links a {
+                font-size: 0.9em;
+            }
         }
     </style>
 </head>
 <body>
-    <h2>Профиль {{ profile.user.username }}</h2>
-    <a href="{% url 'profile-list' %}">Назад к списку</a>
-    <a href="{% url 'logout' %}">Выйти</a>
-    {% if is_own_profile %}
-        <a href="{% url 'edit-profile' %}">Редактировать профиль</a>
-    {% endif %}
-    <div>
-        {% if profile.photo and profile.photo.url %}
-            <img src="{{ profile.photo.url }}" alt="Аватар" class="avatar">
-        {% else %}
-            <img src="{% static 'images/default-avatar.png' %}" alt="Аватар" class="avatar">
-        {% endif %}
-        <p><strong>Имя:</strong> {{ profile.name }}</p>
-        <p><strong>Username:</strong> {{ profile.user.username }}</p>
-        <p><strong>Статус:</strong> {{ profile.status|default:"Не указан" }}</p>
-        <p><strong>Возраст:</strong> {{ profile.age }}</p>
-        <p><strong>Интересы:</strong></p>
-        <div>
-            {% for interest in interests %}
-                <span class="interest-box">{{ interest.name }}</span>
-            {% empty %}
-                <p>Интересы не указаны.</p>
-            {% endfor %}
-        </div>
-        <p><strong>Био:</strong> {{ profile.bio|default:"Не указано" }}</p>
-        <p><strong>Город:</strong> {{ profile.location.name|default:"Не указан" }}</p>
-    </div>
-    {% if not is_own_profile %}
-        <form method="post" action="{% url 'create-match' user_id %}" style="display:inline;">
-            {% csrf_token %}
-            {% if user_id in matched_user_ids %}
-                <button type="button" disabled>Уже в мэтче</button>
-            {% elif user_id in sent_like_user_ids %}
-                <button type="submit">Ожидаем ответа</button>
-            {% else %}
-                <button type="submit">Создать мэтч</button>
+    <div class="profile-container">
+        <div class="nav-links">
+            <a href="{% url 'profile-list' %}">Назад к списку</a>
+            <a href="{% url 'logout' %}">Выйти</a>
+            {% if is_own_profile %}
+                <a href="{% url 'edit-profile' %}">Редактировать профиль</a>
             {% endif %}
-        </form>
-        <a href="{% url 'chat' user_id %}">Перейти в чат</a>
-    {% endif %}
-    {% for message in messages %}
-        <p>{{ message }}</p>
-    {% endfor %}
+        </div>
+        <h2>Профиль {{ profile.user.username }}</h2>
+        <div>
+            {% if profile.photo and profile.photo.url %}
+                <img src="{{ profile.photo.url }}" alt="Аватар" class="avatar">
+            {% else %}
+                <div class="default-avatar">No Image</div>
+            {% endif %}
+            <p><strong>Имя:</strong> {{ profile.name }}</p>
+            <p><strong>Username:</strong> {{ profile.user.username }}</p>
+            <p><strong>Статус:</strong> {{ profile.status|default:"Не указан" }}</p>
+            <p><strong>Возраст:</strong> {{ profile.age|default:"Не указано" }}</p>
+            <p><strong>Интересы:</strong></p>
+            <div>
+                {% for interest in interests %}
+                    <span class="interest-box">{{ interest.name }}</span>
+                {% empty %}
+                    <p>Интересы не указаны.</p>
+                {% endfor %}
+            </div>
+            <p><strong>Био:</strong> {{ profile.bio|default:"Не указано" }}</p>
+            <p><strong>Город:</strong> {{ profile.location.name|default:"Не указан" }}</p>
+        </div>
+        {% if not is_own_profile %}
+            <div class="action-links">
+                <form method="post" action="{% url 'create-match' user_id %}" style="display:inline;">
+                    {% csrf_token %}
+                    {% if user_id in matched_user_ids %}
+                        <button type="button" disabled>Уже в мэтче</button>
+                    {% elif user_id in sent_like_user_ids %}
+                        <button type="submit">Ожидаем ответа</button>
+                    {% else %}
+                        <button type="submit">Создать мэтч</button>
+                    {% endif %}
+                </form>
+                <a href="{% url 'chat' user_id %}">Перейти в чат</a>
+            </div>
+        {% endif %}
+        {% for message in messages %}
+            <p class="message {% if 'error' in message.tags %}error{% else %}success{% endif %}">{{ message }}</p>
+        {% endfor %}
+    </div>
 </body>
 </html>
