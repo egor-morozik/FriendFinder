@@ -179,16 +179,14 @@ def chat(request, user_id):
     if not match:
         context = {'other_user': other_user, 'messages': [], 'match': None}
     else:
-        messages_qs = Message.objects.filter(match=match).select_related('sender').order_by('created_at')
+        messages_qs = Message.objects.filter(match=match).select_related('sender', 'sender__profile').order_by('created_at')
         messages = [{
             'message': msg.content,
-            'sender': msg.sender.username,
+            'sender': msg.sender, 
             'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         } for msg in messages_qs]
-
         cache_key = f"chat_messages:chat_{min(current_user.id, other_user.id)}_{max(current_user.id, other_user.id)}"
         cache.set(cache_key, messages, timeout=3600)
-
         context = {'other_user': other_user, 'messages': messages, 'match': match}
 
     return render(request, 'profiles/chat.html', context)
@@ -273,3 +271,22 @@ def profile_recommendations(request):
         'total_profiles': total_profiles,
     }
     return render(request, 'profiles/recommendations.html', context)
+
+@login_required
+def all_chats(request):
+    current_user = request.user
+    matches = Match.objects.filter(user1=current_user) | Match.objects.filter(user2=current_user)
+    
+    chats = []
+    for match in matches:
+        other_user = match.user2 if match.user1 == current_user else match.user1
+        last_message = Message.objects.filter(match=match).order_by('-created_at').first()
+        chats.append({
+            'user': other_user,
+            'last_message': last_message.content if last_message else "Нет сообщений",
+            'last_message_time': last_message.created_at.strftime('%Y-%m-%d %H:%M:%S') if last_message else None,
+            'url': f'/main/chat/{other_user.id}/'
+        })
+
+    context = {'chats': chats}
+    return render(request, 'profiles/all_chats.html', context)

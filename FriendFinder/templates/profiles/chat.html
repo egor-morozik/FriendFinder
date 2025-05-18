@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Чат с {{ other_user.username }}</title>
+    <title>Чат</title>
     <style>
         * {
             margin: 0;
@@ -13,10 +13,6 @@
             background: linear-gradient(135deg, #6e8efb, #a777e3);
             min-height: 100vh;
             color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 20px;
         }
         .chat-container {
             background: rgba(255, 255, 255, 0.95);
@@ -24,165 +20,113 @@
             border-radius: 15px;
             max-width: 600px;
             width: 100%;
+            margin: 40px auto;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            animation: fadeIn 0.5s ease-in-out;
         }
         h2 {
-            color: #6e8efb;
-            font-size: 2em;
+            color: #fff;
+            font-size: 2.5em;
             margin-bottom: 20px;
+            text-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
             text-align: center;
-        }
-        .nav-links {
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .nav-links a {
-            color: #6e8efb;
-            text-decoration: none;
-            margin: 0 10px;
-            font-size: 1em;
-            transition: color 0.3s ease;
-        }
-        .nav-links a:hover {
-            color: #5d7de8;
         }
         .message-list {
             max-height: 400px;
             overflow-y: auto;
             padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
             background: #f9f9f9;
+            border-radius: 10px;
             margin-bottom: 20px;
         }
         .message {
             padding: 10px;
-            margin: 5px 0;
-            border-radius: 10px;
-            max-width: 70%;
-            word-wrap: break-word;
-        }
-        .message.current-user {
-            background: #6e8efb;
-            color: white;
-            margin-left: auto;
-            text-align: right;
-        }
-        .message.other-user {
-            background: #e0e0e0;
-            color: #333;
-            margin-right: auto;
-            text-align: left;
-        }
-        .message strong {
-            display: block;
-            font-size: 0.9em;
-        }
-        .message.current-user strong {
-            color: #ffffff;
-        }
-        .message.other-user strong {
-            color: #6e8efb;
-        }
-        .message span {
-            display: block;
-            font-size: 0.8em;
-            color: #777;
-        }
-        .message.current-user span {
-            color: #e0e0e0;
-        }
-        .no-messages {
-            color: #777;
-            text-align: center;
-        }
-        .no-match {
-            color: #d32f2f;
-            text-align: center;
-            background: #f8d7da;
-            padding: 10px;
+            margin: 10px 0;
             border-radius: 5px;
+            display: flex;
+            align-items: center;
+        }
+        .current-user {
+            background: #e3f2fd;
+            justify-content: flex-end;
+        }
+        .other-user {
+            background: #f5f5f5;
+        }
+        .message .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 10px;
+            border: 2px solid #6e8efb;
+        }
+        .message-content {
+            max-width: 80%;
+        }
+        .message-content strong {
+            margin-right: 10px;
+        }
+        .message-content span {
+            color: #777;
+            font-size: 0.8em;
         }
         form {
             display: flex;
-            flex-direction: column;
-            align-items: center;
+            gap: 10px;
         }
         textarea {
-            width: 100%;
+            flex-grow: 1;
             padding: 10px;
             border: 1px solid #ddd;
             border-radius: 5px;
-            resize: vertical;
-            min-height: 100px;
-            font-size: 1em;
-            margin-bottom: 10px;
-            transition: border-color 0.3s ease;
-        }
-        textarea:focus {
-            outline: none;
-            border-color: #6e8efb;
-            box-shadow: 0 0 5px rgba(110, 142, 251, 0.5);
+            resize: none;
         }
         button {
+            padding: 10px 20px;
             background: #6e8efb;
             color: white;
             border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
+            border-radius: 5px;
             cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease, transform 0.2s ease;
+            transition: background 0.3s ease;
         }
         button:hover {
             background: #5d7de8;
-            transform: scale(1.05);
         }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .no-match {
+            color: #fff;
+            text-align: center;
         }
-
         @media (max-width: 768px) {
             .chat-container {
-                padding: 20px;
                 max-width: 100%;
+                margin: 20px;
+                padding: 20px;
             }
             h2 {
-                font-size: 1.5em;
-            }
-            .message-list {
-                max-height: 300px;
-            }
-            .message {
-                max-width: 85%;
+                font-size: 2em;
             }
         }
     </style>
 </head>
 <body>
     <div class="chat-container">
-        <div class="nav-links">
-            <a href="{% url 'profile-list' %}">Назад к списку</a>
-            <a href="{% url 'logout' %}">Выйти</a>
-        </div>
         <h2>Чат с {{ other_user.username }}</h2>
         {% if not match %}
             <p class="no-match">Чат доступен только после мэтча. Лайкните пользователя для начала!</p>
         {% else %}
             <div class="message-list" id="message-list">
                 {% for message in messages %}
-                    <div class="message {% if message.sender == request.user.username %}current-user{% else %}other-user{% endif %}">
-                        <strong>{{ message.sender }}:</strong> {{ message.message }}
-                        <span>({{ message.created_at }})</span>
+                    <div class="message {% if message.sender.username == request.user.username %}current-user{% else %}other-user{% endif %}">
+                        {% if message.sender.profile and message.sender.profile.photo and message.sender.profile.photo.url %}
+                            <img src="{{ message.sender.profile.photo.url }}" alt="{{ message.sender.username }}" class="avatar">
+                        {% else %}
+                            <img src="/media/profile_photos/default-avatar.png" alt="Default Avatar" class="avatar">
+                        {% endif %}
+                        <div class="message-content">
+                            <strong>{{ message.sender.username }}:</strong> {{ message.message }}
+                            <span>({{ message.created_at }})</span>
+                        </div>
                     </div>
                 {% empty %}
                     <p class="no-messages">Нет сообщений. Начните чат!</p>
@@ -195,56 +139,55 @@
         {% endif %}
     </div>
 
-    {% if match %}
     <script>
-    const userId = {{ other_user.id }};
-    const currentUser = "{{ request.user.username }}";
-    const chatSocket = new WebSocket(
-        (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + '/ws/chat/' + userId + '/'
-    );
+        const userId = {{ other_user.id }};
+        const currentUser = "{{ request.user.username }}";
+        const chatSocket = new WebSocket(
+            (window.location.protocol === "https:" ? "wss://" : "ws://") + window.location.host + '/ws/chat/' + userId + '/'
+        );
 
-    chatSocket.onopen = function(e) {
-        console.log("WebSocket connection opened for /ws/chat/" + userId);
-    };
+        chatSocket.onopen = function(e) {
+            console.log("WebSocket connection opened for /ws/chat/" + userId);
+        };
 
-    chatSocket.onmessage = function(e) {
-        console.log("Message received:", e.data); // Отладка
-        const data = JSON.parse(e.data);
-        const messageList = document.getElementById('message-list');
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message ' + (data.sender === currentUser ? 'current-user' : 'other-user');
-        messageDiv.innerHTML = `<strong>${data.sender}:</strong> ${data.message} <span>(${data.created_at})</span>`;
-        messageList.appendChild(messageDiv);
-        messageList.scrollTop = messageList.scrollHeight;
-    };
+        chatSocket.onmessage = function(e) {
+            console.log("Message received:", e.data);
+            const data = JSON.parse(e.data);
+            const messageList = document.getElementById('message-list');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ' + (data.sender.username === currentUser ? 'current-user' : 'other-user');
+            let avatarHtml = data.sender.profile && data.sender.profile.photo ? 
+                `<img src="${data.sender.profile.photo}" alt="${data.sender.username}" class="avatar">` : 
+                `<img src="/media/profile_photos/default-avatar.png" alt="Default Avatar" class="avatar">`;
+            messageDiv.innerHTML = `${avatarHtml}<div class="message-content"><strong>${data.sender.username}:</strong> ${data.message} <span>(${data.created_at})</span></div>`;
+            messageList.appendChild(messageDiv);
+            messageList.scrollTop = messageList.scrollHeight;
+        };
 
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly:', e);
-    };
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly:', e);
+        };
 
-    chatSocket.onerror = function(e) {
-        console.error('WebSocket error:', e);
-    };
+        chatSocket.onerror = function(e) {
+            console.error('WebSocket error:', e);
+        };
 
-    document.getElementById('chat-form').onsubmit = function(e) {
-        e.preventDefault();
-        const messageInput = document.getElementById('message-input');
-        const message = messageInput.value.trim();
-        if (message) {
-            chatSocket.send(JSON.stringify({
-                'message': message
-            }));
-            console.log("Message sent to server:", message); // Отладка
-            messageInput.value = '';
-        }
-        return false;
-    };
+        document.getElementById('chat-form').onsubmit = function(e) {
+            e.preventDefault();
+            const messageInput = document.getElementById('message-input');
+            const message = messageInput.value.trim();
+            if (message) {
+                chatSocket.send(JSON.stringify({'message': message}));
+                console.log("Message sent to server:", message);
+                messageInput.value = '';
+            }
+            return false;
+        };
 
-    window.onload = function() {
-        const messageList = document.getElementById('message-list');
-        messageList.scrollTop = messageList.scrollHeight;
-    };
+        window.onload = function() {
+            const messageList = document.getElementById('message-list');
+            messageList.scrollTop = messageList.scrollHeight;
+        };
     </script>
-    {% endif %}
 </body>
 </html>

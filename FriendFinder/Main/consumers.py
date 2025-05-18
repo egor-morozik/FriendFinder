@@ -1,10 +1,9 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from django.contrib.auth import get_user_model
 
-import json
-from channels.generic.websocket import AsyncWebsocketConsumer
-from channels.db import database_sync_to_async
+User = get_user_model()
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
@@ -32,13 +31,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
             saved_message = await self.save_message(message)
             print(f"Saved message: {saved_message.content} by {saved_message.sender.username} at {saved_message.created_at}")
 
-            # Обновляем кэш после сохранения
+            # Получаем данные профиля для аватарки
+            sender_profile = await database_sync_to_async(lambda: saved_message.sender.profile)(())
+            sender_data = {
+                'id': saved_message.sender.id,
+                'username': saved_message.sender.username,
+                'profile': {
+                    'photo': sender_profile.photo.url if sender_profile and sender_profile.photo else None
+                } if sender_profile else None
+            }
+
             from django.core.cache import cache
             cache_key = f"chat_messages:{self.room_name}"
             messages = cache.get(cache_key, [])
             messages.append({
                 'message': message,
-                'sender': self.user.username,
+                'sender': sender_data,
                 'created_at': saved_message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
             })
             cache.set(cache_key, messages, timeout=3600)
@@ -48,7 +56,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 {
                     'type': 'chat_message',
                     'message': message,
-                    'sender': self.user.username,
+                    'sender': sender_data,
                     'created_at': saved_message.created_at.strftime('%Y-%m-%d %H:%M:%S'),
                 }
             )
