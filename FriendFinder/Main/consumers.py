@@ -31,8 +31,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
             saved_message = await self.save_message(message)
             print(f"Saved message: {saved_message.content} by {saved_message.sender.username} at {saved_message.created_at}")
 
-            # Получаем данные профиля для аватарки
-            sender_profile = await database_sync_to_async(lambda: saved_message.sender.profile)(())
+            # Получаем данные профиля для аватарки с помощью функции
+            sender_profile = await self.get_sender_profile(saved_message)
             sender_data = {
                 'id': saved_message.sender.id,
                 'username': saved_message.sender.username,
@@ -85,3 +85,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
         print(f"Message created in DB: {msg.id}, {msg.content}")
         return msg
+
+    @database_sync_to_async
+    def get_sender_profile(self, saved_message):
+        return saved_message.sender.profile
